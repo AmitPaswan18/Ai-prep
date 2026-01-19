@@ -1,15 +1,21 @@
 {
-  "name": "ai-platform",
+  "name": "ai-interview-platform",
   "private": true,
+  "author": {
+    "name": "Amit",
+    "email": "ak9425391@gmail.com"
+  },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "concurrently -n \"WEB,API\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev --workspace=@ai-platform/web\" \"npm run dev --workspace=@ai-platform/api\"",
+    "dev:turbo": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "latest"
+    "concurrently": "^9.2.1",
+    "prettier": "latest",
+    "turbo": "latest"
   },
   "workspaces": [
     "apps/*",
