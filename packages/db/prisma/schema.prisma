@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  clerkUserId   String   @unique
+  email         String   @unique
+  name          String?
+  createdAt     DateTime @default(now())
+
+  interviews    Interview[]
+  subscription  Subscription?
+}
+
+model Interview {
+  id          String   @id @default(uuid())
+  userId      String
+  role        String
+  level       String
+  score       Float?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  user        User     @relation(fields: [userId], references: [id])
+  results     InterviewResult[]
+  skills      SkillScore[]
+}
+
+model InterviewResult {
+  id              String @id @default(uuid())
+  interviewId     String
+  technicalScore  Float
+  clarityScore    Float
+  depthScore      Float
+  feedback        String
+
+  interview       Interview @relation(fields: [interviewId], references: [id])
+}
+
+model SkillScore {
+  id          String @id @default(uuid())
+  interviewId String
+  skillName   String
+  score       Float
+
+  interview   Interview @relation(fields: [interviewId], references: [id])
+}
+
+model Subscription {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  plan               String
+  status             String
+  stripeCustomerId   String?
+  createdAt          DateTime @default(now())
+
+  user               User     @relation(fields: [userId], references: [id])
+}
