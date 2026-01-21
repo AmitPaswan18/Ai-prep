@@ -1,26 +1,24 @@
 import { prisma } from "@repo/db";
+import { clerkClient } from "@clerk/express";
 
 type ClerkUserPayload = {
     clerkUserId: string;
-    email: string;
-    name?: string;
 };
 
-export async function getOrCreateUser({
-    clerkUserId,
-    email,
-    name,
-}: ClerkUserPayload) {
-    const existingUser = await prisma.user.findUnique({
+export async function getOrCreateUser({ clerkUserId }: ClerkUserPayload) {
+    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+
+    const email = clerkUser.emailAddresses?.[0]?.emailAddress ?? "";
+    const name =
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null;
+
+    return prisma.user.upsert({
         where: { clerkUserId },
-    });
-
-    if (existingUser) {
-        return existingUser;
-    }
-
-    return prisma.user.create({
-        data: {
+        update: {
+            email,
+            name,
+        },
+        create: {
             clerkUserId,
             email,
             name,

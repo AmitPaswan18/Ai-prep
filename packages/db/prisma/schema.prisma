@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -18,29 +19,50 @@ model User {
 }
 
 model Interview {
-  id          String   @id @default(uuid())
-  userId      String
-  role        String
-  level       String
-  score       Float?
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  role         String
+  level        String   // junior / mid / senior
+  status       InterviewStatus @default(DRAFT)
+  createdAt    DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id])
-  results     InterviewResult[]
-  skills      SkillScore[]
+  user         User     @relation(fields: [userId], references: [id])
+  questions    InterviewQuestion[]
+  results      InterviewResult?
+  skillScores SkillScore[]
+
+}
+
+model InterviewQuestion {
+  id           String   @id @default(uuid())
+  interviewId  String
+  question     String
+  answer       String?
+  score        Int?
+  feedback     String?
+
+  interview    Interview @relation(fields: [interviewId], references: [id])
 }
 
 model InterviewResult {
-  id              String @id @default(uuid())
-  interviewId     String
-  technicalScore  Float
-  clarityScore    Float
-  depthScore      Float
-  feedback        String
+  id           String   @id @default(uuid())
+  interviewId  String   @unique
+  overallScore Int
+  summary      String
+  strengths    String
+  weaknesses   String
+  createdAt    DateTime @default(now())
 
-  interview       Interview @relation(fields: [interviewId], references: [id])
+  interview    Interview @relation(fields: [interviewId], references: [id])
 }
+
+enum InterviewStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
 
 model SkillScore {
   id          String @id @default(uuid())

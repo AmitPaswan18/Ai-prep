@@ -18,7 +18,6 @@ router.get("/me", requireAuth(), async (req, res) => {
 
     const user = await getOrCreateUser({
         clerkUserId: userId,
-        email: email as string,
     });
 
     res.json(user);
