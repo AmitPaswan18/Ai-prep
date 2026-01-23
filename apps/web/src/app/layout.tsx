@@ -34,7 +34,7 @@ export default async function RootLayout({
   const { isAuthenticated, redirectToSignIn, userId } = await auth();
   if (!isAuthenticated) return redirectToSignIn();
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}>

@@ -15,6 +15,7 @@
   "type": "commonjs",
   "dependencies": {
     "@clerk/express": "^1.7.63",
+    "@prisma/client": "^7.3.0",
     "@repo/db": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

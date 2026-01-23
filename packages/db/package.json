@@ -10,7 +10,7 @@
     "studio": "prisma studio"
   },
   "keywords": [],
-  "author": "",
+  "author": "Amit",
   "license": "ISC",
   "packageManager": "pnpm@10.28.1",
   "dependencies": {

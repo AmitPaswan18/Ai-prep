@@ -24,11 +24,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 
-interface NavbarProps {
-  isAuthenticated?: string;
-}
-
-const Navbar = ({ isAuthenticated = "" }: NavbarProps) => {
+const Navbar = () => {
   const location = usePathname();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -59,52 +55,47 @@ const Navbar = ({ isAuthenticated = "" }: NavbarProps) => {
             <span className="font-display text-xl font-bold">InterviewAI</span>
           </Link>
 
-          {isAuthenticated?.clerkUserId && (
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => {
-                const isActive = location === link.href;
-                return (
-                  <Link key={link.href} href={link.href}>
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      size="sm"
-                      className="gap-2">
-                      <link.icon className="h-4 w-4" />
-                      {link.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const isActive = location === link.href;
+              return (
+                <Link key={link.href} href={link.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    size="sm"
+                    className="gap-2">
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Button>
+                </Link>
+              );
+            })}
+          </div>
 
           <div className="hidden md:flex items-center gap-3">
-            {!isAuthenticated?.clerkUserId ? (
-              <Link href="/">
-                <SignedOut>
-                  <SignInButton />
-                  <SignUpButton>
-                    <button className="bg-[#6c47ff] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-                      Sign Up
-                    </button>
-                  </SignUpButton>
-                </SignedOut>
+            <Link href="/">
+              <SignedOut>
+                <SignInButton />
+                <SignUpButton>
+                  <button className="bg-[#6c47ff] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
+                    Sign Up
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+            </Link>
+            <>
+              <Link href="/pricing">
+                <Button variant="ghost">Pricing</Button>
               </Link>
-            ) : (
-              <>
-                <Link href="/pricing">
-                  <Button variant="ghost">Pricing</Button>
-                </Link>
-                <Link href="/auth?mode=signup">
-                  <Button variant="outline">Get Started</Button>
-                </Link>
-                <header className="flex justify-end items-center p-4 gap-4 h-16">
-                  <SignedIn>
-                    <UserButton />
-                  </SignedIn>
-                </header>
-              </>
-            )}
+              <Link href="/auth?mode=signup">
+                <Button variant="outline">Get Started</Button>
+              </Link>
+              <header className="flex justify-end items-center p-4 gap-4 h-16">
+                <SignedIn>
+                  <UserButton />
+                </SignedIn>
+              </header>
+            </>
           </div>
 
           <Button
@@ -122,53 +113,44 @@ const Navbar = ({ isAuthenticated = "" }: NavbarProps) => {
             animate={{ opacity: 1, height: "auto" }}
             className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-2">
-              {isAuthenticated ? (
-                <>
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2">
-                        <link.icon className="h-4 w-4" />
-                        {link.label}
-                      </Button>
-                    </Link>
-                  ))}
-                  <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2">
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/pricing"
-                    onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full">
-                      Pricing
-                    </Button>
-                  </Link>
-                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link
-                    href="/auth?mode=signup"
-                    onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full">
-                      Get Started
-                    </Button>
-                  </Link>
-                </>
-              )}
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2">
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Button>
+                </Link>
+              ))}
+              <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </Link>
+              <>
+                <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full">
+                    Pricing
+                  </Button>
+                </Link>
+                <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link
+                  href="/auth?mode=signup"
+                  onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
             </div>
           </motion.div>
         )}

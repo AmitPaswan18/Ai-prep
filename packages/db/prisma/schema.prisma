@@ -20,18 +20,28 @@ model User {
 
 model Interview {
   id           String   @id @default(uuid())
-  userId       String
+  userId       String?
   title        String
-  role         String
-  level        String   // junior / mid / senior
+  description  String?
+  category     InterviewCategory @default(TECHNICAL)
+  difficulty   InterviewDifficulty @default(INTERMEDIATE)
+  duration     Int      @default(30) 
+  rating       Float    @default(0)
+  completions  Int      @default(0)
+  topics       String[] 
+  icon         String?  
+  color        String?  
+  role         String?
+  level        String? 
   status       InterviewStatus @default(DRAFT)
+  isTemplate   Boolean  @default(false) 
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id])
+  user         User?    @relation(fields: [userId], references: [id])
   questions    InterviewQuestion[]
   results      InterviewResult?
-  skillScores SkillScore[]
-
+  skillScores  SkillScore[]
 }
 
 model InterviewQuestion {
@@ -61,6 +71,19 @@ enum InterviewStatus {
   DRAFT
   IN_PROGRESS
   COMPLETED
+}
+
+enum InterviewCategory {
+  TECHNICAL
+  BEHAVIORAL
+  SYSTEM_DESIGN
+  CASE_STUDY
+}
+
+enum InterviewDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 }
 
 
