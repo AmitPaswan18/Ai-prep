@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
 
@@ -56,10 +57,10 @@ const InterviewSetup = () => {
   const isValid = setup.role && setup.level && setup.type;
 
   return (
-    <div className="page-wrapper">
+    <div className="w-full">
       <Navbar />
 
-      <main className="page-content">
+      <main className=" px-[10%] py-6 w-full mx-auto">
         <PageHeader
           title="Set Up Your Interview"
           description="Customize your mock interview experience"
