@@ -17,6 +17,7 @@
     "prettier": "latest",
     "turbo": "latest"
   },
+  "packageManager": "pnpm@10.28.2",
   "workspaces": [
     "apps/*",
     "packages/*"
