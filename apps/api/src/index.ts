@@ -17,6 +17,8 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/interview", interviewRoutes);
 
-app.listen(4000, () => {
-  console.log("API running on http://localhost:4000");
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
 });
+
+export default app;
