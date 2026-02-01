@@ -4,7 +4,7 @@ import {
     createInterview,
     getInterviews,
     getInterviewById,
-} from "../services/interview.service";
+} from "../services/interview.service.js";
 import { prisma, InterviewCategory, InterviewDifficulty } from "@repo/db";
 
 
