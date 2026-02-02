@@ -21,4 +21,8 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
-export default app;
+const PORT = process.env.PORT || 4000;
+
+app.listen(PORT, () => {
+  console.log(`✅ API Server running on port ${PORT}`);
+});
