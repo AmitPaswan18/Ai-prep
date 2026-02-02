@@ -101,3 +101,96 @@ export const interviewApi = {
         return response.json();
     },
 };
+
+export interface InterviewQuestion {
+    id: string;
+    question: string;
+}
+
+export interface InterviewSession {
+    interview: Interview;
+    questions: InterviewQuestion[];
+}
+
+export interface InterviewResponse {
+    questionId: string;
+    question: string;
+    answer: string;
+    timeSpent: number; // in seconds
+}
+
+export interface InterviewAnalysis {
+    overallScore: number;
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    questionScores: Array<{
+        questionId: string;
+        score: number;
+        feedback: string;
+    }>;
+    skillScores: Array<{
+        skillName: string;
+        score: number;
+    }>;
+}
+
+export const interviewSessionApi = {
+    // Start an interview session (generates questions)
+    async startSession(interviewId: string, userId: string): Promise<InterviewSession> {
+        const response = await fetch(`${API_BASE_URL}/interview-session/start/${interviewId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ userId }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to start interview session');
+        }
+
+        const result = await response.json();
+        return result.data;
+    },
+
+    // Get interview session details
+    async getSession(interviewId: string): Promise<InterviewSession> {
+        const response = await fetch(`${API_BASE_URL}/interview-session/${interviewId}`, {
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch interview session');
+        }
+
+        const result = await response.json();
+        return result.data;
+    },
+
+    // Submit interview responses
+    async submitSession(
+        interviewId: string,
+        responses: InterviewResponse[]
+    ): Promise<{ result: any; analysis: InterviewAnalysis }> {
+        const response = await fetch(`${API_BASE_URL}/interview-session/submit/${interviewId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ responses }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to submit interview');
+        }
+
+        const result = await response.json();
+        return result.data;
+    },
+};

@@ -1,11 +1,14 @@
 {
   "name": "@ai-platform/ai-core",
   "version": "0.0.0",
-  "main": "index.ts",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "langchain": "latest"
   },
   "devDependencies": {

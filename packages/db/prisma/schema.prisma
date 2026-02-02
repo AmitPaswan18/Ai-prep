@@ -94,6 +94,8 @@ model SkillScore {
   score       Float
 
   interview   Interview @relation(fields: [interviewId], references: [id])
+
+  @@unique([interviewId, skillName], name: "interviewId_skillName")
 }
 
 model Subscription {

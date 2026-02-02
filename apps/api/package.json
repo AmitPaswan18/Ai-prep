@@ -14,6 +14,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@ai-platform/ai-core": "workspace:*",
     "@clerk/express": "^1.7.63",
     "@prisma/client": "^7.3.0",
     "@repo/db": "workspace:*",

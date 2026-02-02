@@ -80,7 +80,7 @@ const Interviews = () => {
         const data = await interviewApi.getInterviews({
           category: selectedCategory,
           search: searchQuery,
-          template: true, // Show templates by default
+          // template: true,
         });
         setInterviews(data);
       } catch (err: any) {
@@ -226,7 +226,7 @@ const Interviews = () => {
                           {interview.difficulty}
                         </Badge>
                       </div>
-                      <Link href={`/interview/${interview.id}`}>
+                      <Link href={`/interviews/room/${interview.id}`}>
                         <Button
                           variant="outline"
                           size="sm"

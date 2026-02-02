@@ -20,6 +20,7 @@ import {
   Volume2,
 } from "lucide-react";
 import Link from "next/link";
+import Navbar from "@/components/layout/Navbar";
 const InterviewRoom = () => {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -59,6 +60,7 @@ const InterviewRoom = () => {
 
   return (
     <div className="min-h-screen gradient-hero">
+      <Navbar />
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

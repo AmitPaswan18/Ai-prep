@@ -20,6 +20,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@ai-platform/ai-core':
+        specifier: workspace:*
+        version: link:../../packages/ai-core
       '@clerk/express':
         specifier: ^1.7.63
         version: 1.7.63(express@5.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -139,6 +142,9 @@ importers:
 
   packages/ai-core:
     dependencies:
+      '@google/generative-ai':
+        specifier: ^0.21.0
+        version: 0.21.0
       langchain:
         specifier: latest
         version: 1.2.10(@langchain/core@1.1.15)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -420,6 +426,10 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
+  '@google/generative-ai@0.21.0':
+    resolution: {integrity: sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==}
+    engines: {node: '>=18.0.0'}
 
   '@hono/node-server@1.19.6':
     resolution: {integrity: sha512-Shz/KjlIeAhfiuE93NDKVdZ7HdBVLQAfdbaXEaoAVO3ic9ibRSLGIQGkcBbFyuLr+7/1D5ZCINM8B+6IvXeMtw==}
@@ -4249,6 +4259,8 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
 
   '@floating-ui/utils@0.2.10': {}
+
+  '@google/generative-ai@0.21.0': {}
 
   '@hono/node-server@1.19.6(hono@4.10.6)':
     dependencies:
