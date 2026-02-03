@@ -8,11 +8,11 @@ WORKDIR /app
 
 # Install dependencies
 FROM base AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile
 
 # Build stage
 FROM base AS build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 # Generate database client first
 RUN pnpm --filter @repo/db run generate
 RUN pnpm run build
