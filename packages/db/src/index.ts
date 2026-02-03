@@ -18,7 +18,8 @@ function getPrisma() {
             ssl: {
                 rejectUnauthorized: false,
             },
-        });
+            family: 4, // Force IPv4 to prevent IPv6 connection issues
+        } as any);
 
         const adapter = new PrismaPg(pool);
 
