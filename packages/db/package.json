@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm run generate && tsc",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
