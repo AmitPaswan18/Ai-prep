@@ -25,6 +25,7 @@ type GetInterviewsFilter = {
     isTemplate?: boolean;
     userId?: string;
     search?: string;
+    status?: string;
 };
 
 export async function createInterview(input: CreateInterviewInput) {
@@ -65,6 +66,10 @@ export async function getInterviews(filter?: GetInterviewsFilter) {
         where.userId = filter.userId;
     }
 
+    if (filter?.status) {
+        where.status = filter.status;
+    }
+
     if (filter?.search) {
         where.OR = [
             { title: { contains: filter.search, mode: "insensitive" } },
@@ -75,14 +80,14 @@ export async function getInterviews(filter?: GetInterviewsFilter) {
     return prisma.interview.findMany({
         where,
         orderBy: [
-            { rating: "desc" },
-            { completions: "desc" },
+            { updatedAt: "desc" },
             { createdAt: "desc" },
         ],
         include: {
             _count: {
                 select: { questions: true },
             },
+            results: filter?.status === "COMPLETED" ? true : false,
         },
     });
 }

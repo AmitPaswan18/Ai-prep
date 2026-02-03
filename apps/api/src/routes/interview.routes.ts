@@ -13,7 +13,7 @@ const router = Router();
 // GET /interview - Get list of interviews (templates or user's interviews)
 router.get("/", async (req, res) => {
     try {
-        const { category, difficulty, search, template } = req.query;
+        const { category, difficulty, search, template, status } = req.query;
 
         // Build filter object
         const filter: any = {};
@@ -51,6 +51,11 @@ router.get("/", async (req, res) => {
         // Template filter - if true, show only templates (public interviews)
         if (template === "true") {
             filter.isTemplate = true;
+        }
+
+        // Status filter - for fetching completed interviews
+        if (status) {
+            filter.status = status as string;
         }
 
         const interviews = await getInterviews(filter);

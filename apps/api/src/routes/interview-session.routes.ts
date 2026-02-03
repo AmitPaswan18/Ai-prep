@@ -3,6 +3,7 @@ import {
     startInterviewSession,
     submitInterviewSession,
     getInterviewSession,
+    getInterviewResults,
 } from "../services/interview-session.service.js";
 
 const router = Router();
@@ -83,6 +84,29 @@ router.post("/submit/:interviewId", async (req, res) => {
         res.status(500).json({
             success: false,
             error: error.message || "Failed to submit interview",
+        });
+    }
+});
+
+/**
+ * GET /interview-session/results/:interviewId
+ * Get interview results with complete analysis
+ */
+router.get("/results/:interviewId", async (req, res) => {
+    try {
+        const { interviewId } = req.params;
+
+        const results = await getInterviewResults(interviewId);
+
+        res.json({
+            success: true,
+            data: results,
+        });
+    } catch (error: any) {
+        console.error("Error fetching interview results:", error);
+        res.status(500).json({
+            success: false,
+            error: error.message || "Failed to fetch interview results",
         });
     }
 });

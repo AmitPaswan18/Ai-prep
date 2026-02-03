@@ -111,7 +111,7 @@ const InterviewSetup = () => {
   const isValid = setup.title && setup.role && setup.level && setup.type;
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-7xl mx-auto">
       <Navbar />
 
       <main className=" px-[10%] py-6 w-full mx-auto">

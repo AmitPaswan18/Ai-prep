@@ -389,16 +389,16 @@ const InterviewRoomPage = () => {
                   <Sparkles className="h-5 w-5 text-accent mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-accent">
-                      {session.interview.title}
+                      {session?.interview?.title}
                     </p>
                     <p className="text-xs text-primary-foreground/70">
-                      {session.interview.category} •{" "}
-                      {session.interview.difficulty}
+                      {session?.interview?.category} •{" "}
+                      {session?.interview?.difficulty}
                     </p>
-                    {session.interview.topics &&
-                      session.interview.topics.length > 0 && (
+                    {session?.interview?.topics &&
+                      session?.interview?.topics.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {session.interview.topics.map((topic, idx) => (
+                          {session?.interview?.topics.map((topic, idx) => (
                             <Badge
                               key={idx}
                               variant="outline"

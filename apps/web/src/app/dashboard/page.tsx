@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
@@ -107,7 +109,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen max-w-7xl mx-auto bg-background">
       <Navbar />
 
       <main className="container mx-auto px-4 pt-24 pb-12">

@@ -100,6 +100,27 @@ export const interviewApi = {
 
         return response.json();
     },
+
+    // Get completed interviews (for history page)
+    async getCompletedInterviews(): Promise<Array<Interview & {
+        results?: {
+            overallScore: number;
+            summary: string;
+            strengths: string;
+            weaknesses: string;
+        }
+    }>> {
+        const response = await fetch(`${API_BASE_URL}/interview?status=COMPLETED`, {
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch completed interviews');
+        }
+
+        return response.json();
+    },
 };
 
 export interface InterviewQuestion {
@@ -193,4 +214,39 @@ export const interviewSessionApi = {
         const result = await response.json();
         return result.data;
     },
+
+    // Get interview results
+    async getResults(interviewId: string): Promise<{
+        interview: Interview;
+        results: {
+            overallScore: number;
+            summary: string;
+            strengths: string[];
+            weaknesses: string[];
+        };
+        questions: Array<{
+            id: string;
+            question: string;
+            answer: string | null;
+            score: number | null;
+            feedback: string | null;
+        }>;
+        skillScores: Array<{
+            skillName: string;
+            score: number;
+        }>;
+    }> {
+        const response = await fetch(`${API_BASE_URL}/interview-session/results/${interviewId}`, {
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch interview results');
+        }
+
+        const result = await response.json();
+        return result.data;
+    },
 };
+

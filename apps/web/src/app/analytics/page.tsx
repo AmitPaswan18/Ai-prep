@@ -64,7 +64,7 @@ const Analytics = () => {
     .sort((a, b) => b.score - a.score);
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper max-w-7xl mx-auto">
       <Navbar />
 
       <main className="page-content">

@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import PageHeader from "@/components/common/PageHeader";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
@@ -26,31 +27,126 @@ import {
   Filter,
   ChevronRight,
   FileText,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
-import { interviewHistory } from "@/lib/mock-data";
+import { interviewApi } from "@/lib/api";
 
 const History = () => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [interviews, setInterviews] = useState<any[]>([]);
 
-  const filteredHistory = interviewHistory.filter((item) => {
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching interview history...");
+        const data = await interviewApi.getCompletedInterviews();
+        setInterviews(data);
+      } catch (err: any) {
+        console.error("Error fetching interview history:", err);
+        setError(err.message || "Failed to load interview history");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
+  const filteredHistory = interviews.filter((item) => {
     const matchesSearch = item.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesType =
       typeFilter === "all" ||
-      item.type.toLowerCase().includes(typeFilter.toLowerCase());
+      item.category.toLowerCase().includes(typeFilter.toLowerCase());
+
+    const score = item.results?.overallScore || 0;
     const matchesScore =
       scoreFilter === "all" ||
-      (scoreFilter === "excellent" && item.score >= 80) ||
-      (scoreFilter === "good" && item.score >= 60 && item.score < 80) ||
-      (scoreFilter === "needs-work" && item.score < 60);
+      (scoreFilter === "excellent" && score >= 80) ||
+      (scoreFilter === "good" && score >= 60 && score < 80) ||
+      (scoreFilter === "needs-work" && score < 60);
+
     return matchesSearch && matchesType && matchesScore;
   });
 
+  // Calculate statistics
+  const totalInterviews = interviews.length;
+  const averageScore =
+    totalInterviews > 0
+      ? Math.round(
+          interviews.reduce(
+            (acc, i) => acc + (i.results?.overallScore || 0),
+            0,
+          ) / totalInterviews,
+        )
+      : 0;
+  const bestScore =
+    totalInterviews > 0
+      ? Math.max(...interviews.map((i) => i.results?.overallScore || 0))
+      : 0;
+  const excellentCount = interviews.filter(
+    (i) => (i.results?.overallScore || 0) >= 80,
+  ).length;
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="page-wrapper max-w-7xl mx-auto">
+        <Navbar />
+        <main className="page-content">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">
+                Loading your interview history...
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-wrapper max-w-7xl mx-auto">
+        <Navbar />
+        <main className="page-content">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+              <h2 className="text-2xl font-bold">Error Loading History</h2>
+              <p className="text-muted-foreground">{error}</p>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper max-w-7xl mx-auto">
       <Navbar />
 
       <main className="page-content">
@@ -123,21 +219,24 @@ const History = () => {
                           <h3 className="font-display font-semibold truncate">
                             {item.title}
                           </h3>
-                          <Badge variant="secondary">{item.type}</Badge>
+                          <Badge variant="secondary">{item.category}</Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5" />
-                            {item.date}
+                            {formatDate(item.updatedAt)}
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
-                            {item.duration}
+                            {item.duration} min
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <ScoreDisplay score={item.score} size="md" />
+                        <ScoreDisplay
+                          score={item.results?.overallScore || 0}
+                          size="md"
+                        />
                         <div className="flex items-center gap-2">
                           <Link href={`/results/${item.id}`}>
                             <Button
@@ -148,9 +247,6 @@ const History = () => {
                               <span className="hidden sm:inline">View</span>
                             </Button>
                           </Link>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
                         </div>
                       </div>
                     </div>
@@ -162,63 +258,76 @@ const History = () => {
         ) : (
           <EmptyState
             icon={FileText}
-            title="No interviews found"
-            description="No interviews match your current filters. Try adjusting your search criteria."
+            title={
+              interviews.length === 0
+                ? "No completed interviews yet"
+                : "No interviews found"
+            }
+            description={
+              interviews.length === 0
+                ? "Complete your first interview to see it here."
+                : "No interviews match your current filters. Try adjusting your search criteria."
+            }
+            action={
+              interviews.length === 0 ? (
+                <Button onClick={() => router.push("/interviews")}>
+                  Browse Interviews
+                </Button>
+              ) : undefined
+            }
           />
         )}
 
         {/* Stats Summary */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8">
-          <Card className="gradient-card shadow-card">
-            <CardHeader>
-              <CardTitle className="text-base">Summary Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="font-display text-2xl font-bold">
-                    {interviewHistory.length}
+        {totalInterviews > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8">
+            <Card className="gradient-card shadow-card">
+              <CardHeader>
+                <CardTitle className="text-base">Summary Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="font-display text-2xl font-bold">
+                      {totalInterviews}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Interviews
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Total Interviews
+                  <div className="text-center">
+                    <div className="font-display text-2xl font-bold">
+                      {averageScore}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Average Score
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <div className="font-display text-2xl font-bold">
-                    {Math.round(
-                      interviewHistory.reduce((acc, i) => acc + i.score, 0) /
-                        interviewHistory.length,
-                    )}
-                    %
+                  <div className="text-center">
+                    <div className="font-display text-2xl font-bold">
+                      {bestScore}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Best Score
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Average Score
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="font-display text-2xl font-bold">
-                    {Math.max(...interviewHistory.map((i) => i.score))}%
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Best Score
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="font-display text-2xl font-bold">
-                    {interviewHistory.filter((i) => i.score >= 80).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Excellent Scores
+                  <div className="text-center">
+                    <div className="font-display text-2xl font-bold">
+                      {excellentCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Excellent Scores
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </main>
     </div>
   );

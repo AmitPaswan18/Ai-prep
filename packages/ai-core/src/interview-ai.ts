@@ -73,7 +73,7 @@ export async function generateInterviewQuestions(
         questionCount = 10,
     } = input;
 
-    const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const prompt = `You are an expert technical interviewer. Generate ${questionCount} interview questions for the following interview:
 
@@ -139,7 +139,7 @@ export async function analyzeInterviewResponses(
     },
     responses: InterviewResponse[]
 ): Promise<InterviewAnalysis> {
-    const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const prompt = `You are an expert interview evaluator. Analyze the following interview performance:
 

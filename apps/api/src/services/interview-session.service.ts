@@ -100,17 +100,34 @@ export async function submitInterviewSession(
     );
 
     // Store individual question scores and feedback
+    // Map AI question scores to actual database questions by index
+    // AI returns questionIds like "q1", "q2", etc., but we need to match them to actual DB question IDs
     await Promise.all(
-        analysis.questionScores.map((qs) =>
-            prisma.interviewQuestion.update({
-                where: { id: qs.questionId },
+        analysis.questionScores.map((qs, index) => {
+            // Extract the question number from AI's questionId (e.g., "q1" -> 0, "q2" -> 1)
+            const questionIndex = parseInt(qs.questionId.replace(/\D/g, '')) - 1;
+            const dbQuestion = interview.questions[questionIndex];
+
+            if (!dbQuestion) {
+                console.warn(`Question at index ${questionIndex} not found in database`);
+                return Promise.resolve();
+            }
+
+            // Find the corresponding response by matching the questionId from frontend
+            const response = responses.find((r) => {
+                // The frontend might send either the DB ID or the AI ID
+                return r.questionId === dbQuestion.id || r.questionId === qs.questionId;
+            });
+
+            return prisma.interviewQuestion.update({
+                where: { id: dbQuestion.id },
                 data: {
                     score: qs.score,
                     feedback: qs.feedback,
-                    answer: responses.find((r) => r.questionId === qs.questionId)?.answer,
+                    answer: response?.answer,
                 },
-            })
-        )
+            });
+        })
     );
 
     // Store overall results
@@ -190,3 +207,63 @@ export async function getInterviewSession(interviewId: string) {
 
     return interview;
 }
+
+/**
+ * Get interview results with complete analysis
+ */
+export async function getInterviewResults(interviewId: string) {
+    const interview = await prisma.interview.findUnique({
+        where: { id: interviewId },
+        include: {
+            questions: {
+                select: {
+                    id: true,
+                    question: true,
+                    answer: true,
+                    score: true,
+                    feedback: true,
+                },
+            },
+            results: true,
+            skillScores: true,
+        },
+    });
+
+    if (!interview) {
+        throw new Error("Interview not found");
+    }
+
+    if (!interview.results) {
+        throw new Error("Interview results not found. Please complete the interview first.");
+    }
+
+    return {
+        interview: {
+            id: interview.id,
+            title: interview.title,
+            description: interview.description,
+            category: interview.category,
+            difficulty: interview.difficulty,
+            duration: interview.duration,
+            status: interview.status,
+        },
+        results: {
+            overallScore: interview.results.overallScore,
+            summary: interview.results.summary,
+            strengths: interview.results.strengths.split('\n').filter(s => s.trim()),
+            weaknesses: interview.results.weaknesses.split('\n').filter(s => s.trim()),
+        },
+        questions: interview.questions.map(q => ({
+            id: q.id,
+            question: q.question,
+            answer: q.answer,
+            score: q.score,
+            feedback: q.feedback,
+        })),
+        skillScores: interview.skillScores.map(s => ({
+            skillName: s.skillName,
+            score: s.score,
+        })),
+    };
+}
+
