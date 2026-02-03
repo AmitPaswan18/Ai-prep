@@ -149,6 +149,9 @@ importers:
         specifier: latest
         version: 1.2.10(@langchain/core@1.1.15)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -186,6 +189,9 @@ importers:
       prisma:
         specifier: ^7.2.0
         version: 7.2.0(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
 
   packages/shared:
     dependencies:
