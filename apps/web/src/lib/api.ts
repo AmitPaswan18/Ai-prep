@@ -108,7 +108,11 @@ export const interviewApi = {
             summary: string;
             strengths: string;
             weaknesses: string;
-        }
+        };
+        skillScores?: Array<{
+            skillName: string;
+            score: number;
+        }>;
     }>> {
         const response = await fetch(`${API_BASE_URL}/interview?status=COMPLETED`, {
             credentials: 'include',

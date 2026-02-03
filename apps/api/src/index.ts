@@ -21,9 +21,16 @@ console.log(`[SERVER] DATABASE_URL present: ${!!process.env.DATABASE_URL}`);
 
 const app = express();
 
+// Configure CORS for production
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
     credentials: true,
   }),
 );
@@ -34,30 +41,34 @@ app.use("/interview", interviewRoutes);
 app.use("/interview-session", interviewSessionRoutes);
 
 app.get("/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 app.get("/db-test", async (req, res) => {
   try {
     const { prisma } = await import("@repo/db");
     const count = await prisma.interview.count();
-    const interviews = await prisma.interview.findMany({ take: 5 });
     res.json({
       ok: true,
       count,
-      sampleIds: interviews.map(i => i.id)
+      message: "Database connection successful"
     });
   } catch (error: any) {
     res.status(500).json({
       ok: false,
-      error: error.message,
-      stack: error.stack
+      error: error.message
     });
   }
 });
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-  console.log(`✅ API Server running on port ${PORT}`);
-});
+// Only listen if not in a serverless environment
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`✅ API Server running on port ${PORT}`);
+    console.log(`📡 Allowed Origins:`, allowedOrigins);
+  });
+}
+
+export default app;
