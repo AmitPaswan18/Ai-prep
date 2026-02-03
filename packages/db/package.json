@@ -2,10 +2,11 @@
   "name": "@repo/db",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "private": true,
-  "types": "src/index.ts",
   "scripts": {
+    "build": "tsc",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
