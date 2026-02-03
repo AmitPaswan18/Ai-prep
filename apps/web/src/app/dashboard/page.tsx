@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,83 +19,108 @@ import {
   Clock,
   TrendingUp,
   Target,
-  Code,
-  Users,
-  Briefcase,
-  Zap,
   ChevronRight,
   Flame,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { interviewApi } from "@/lib/api";
+import { useUser } from "@clerk/nextjs";
 
 const Dashboard = () => {
+  const router = useRouter();
+  const { user } = useUser();
+  const [loading, setLoading] = useState(true);
+  const [completedInterviews, setCompletedInterviews] = useState<any[]>([]);
+  const [templateInterviews, setTemplateInterviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch completed interviews for stats and recent activity
+        const completed = await interviewApi.getCompletedInterviews();
+        setCompletedInterviews(completed);
+
+        // Fetch template interviews for "Start an Interview" section
+        const templates = await interviewApi.getInterviews({ template: false });
+        setTemplateInterviews(templates.slice(0, 4)); // Show only 4
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Calculate stats from real data
+  const totalCompleted = completedInterviews.length;
+  const averageScore =
+    totalCompleted > 0
+      ? Math.round(
+          completedInterviews.reduce(
+            (acc, i) => acc + (i.results?.overallScore || 0),
+            0,
+          ) / totalCompleted,
+        )
+      : 0;
+
+  // Calculate total practice hours (assuming each interview duration)
+  const totalHours =
+    completedInterviews.reduce((acc, i) => acc + (i.duration || 0), 0) / 60;
+
+  // Get recent 3 interviews
+  const recentInterviews = completedInterviews.slice(0, 3);
+
   const stats = [
     {
       label: "Interviews Completed",
-      value: "12",
+      value: totalCompleted.toString(),
       icon: Target,
-      trend: "+3 this week",
-    },
-    { label: "Practice Hours", value: "8.5", icon: Clock, trend: "+2.5 hrs" },
-    { label: "Average Score", value: "85%", icon: TrendingUp, trend: "+12%" },
-    { label: "Current Streak", value: "5", icon: Flame, trend: "days" },
-  ];
-
-  const interviewTypes = [
-    {
-      title: "Technical Interview",
-      description: "Data structures, algorithms, and system design",
-      icon: Code,
-      difficulty: "Advanced",
-      duration: "45 min",
-      color: "bg-blue-500/10 text-blue-600",
+      trend:
+        totalCompleted > 0 ? `${totalCompleted} total` : "Start practicing",
     },
     {
-      title: "Behavioral Interview",
-      description: "Leadership, teamwork, and problem-solving scenarios",
-      icon: Users,
-      difficulty: "Intermediate",
-      duration: "30 min",
-      color: "bg-green-500/10 text-green-600",
+      label: "Practice Hours",
+      value: totalHours.toFixed(1),
+      icon: Clock,
+      trend: `${totalHours.toFixed(1)} hrs`,
     },
     {
-      title: "Case Study",
-      description: "Business strategy and analytical thinking",
-      icon: Briefcase,
-      difficulty: "Advanced",
-      duration: "60 min",
-      color: "bg-purple-500/10 text-purple-600",
+      label: "Average Score",
+      value: `${averageScore}%`,
+      icon: TrendingUp,
+      trend: averageScore >= 70 ? "Good progress" : "Keep practicing",
     },
     {
-      title: "Quick Practice",
-      description: "Rapid-fire questions for daily practice",
-      icon: Zap,
-      difficulty: "Beginner",
-      duration: "15 min",
-      color: "bg-orange-500/10 text-orange-600",
+      label: "This Week",
+      value: completedInterviews
+        .filter((i) => {
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return new Date(i.updatedAt) > weekAgo;
+        })
+        .length.toString(),
+      icon: Flame,
+      trend: "interviews",
     },
   ];
 
-  const recentInterviews = [
-    {
-      title: "Frontend Developer - React",
-      score: 88,
-      date: "2 hours ago",
-      status: "completed",
-    },
-    {
-      title: "System Design - Distributed Systems",
-      score: 72,
-      date: "Yesterday",
-      status: "completed",
-    },
-    {
-      title: "Behavioral - Leadership",
-      score: 95,
-      date: "3 days ago",
-      status: "completed",
-    },
-  ];
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) return "Just now";
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -108,6 +135,19 @@ const Dashboard = () => {
     visible: { opacity: 1, y: 0 },
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen max-w-7xl mx-auto bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 pt-24 pb-12">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen max-w-7xl mx-auto bg-background">
       <Navbar />
@@ -119,7 +159,8 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8">
           <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            Welcome back, <span className="text-gradient">Alex</span>
+            Welcome back,{" "}
+            <span className="text-gradient">{user?.firstName || "there"}</span>
           </h1>
           <p className="text-muted-foreground text-lg">
             Ready to ace your next interview? Let's practice!
@@ -155,7 +196,7 @@ const Dashboard = () => {
         </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Interview Types */}
+          {/* Interview Templates */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -172,43 +213,52 @@ const Dashboard = () => {
               </Link>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
-              {interviewTypes.map((type, index) => (
-                <motion.div key={index} variants={itemVariants}>
-                  <Card className="gradient-card shadow-card hover:shadow-elevated transition-all hover:-translate-y-1 cursor-pointer group">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className={`p-2.5 rounded-xl ${type.color}`}>
-                          <type.icon className="h-5 w-5" />
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {type.duration}
-                        </Badge>
-                      </div>
-                      <h3 className="font-display font-semibold text-lg mb-1">
-                        {type.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {type.description}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-xs">
-                          {type.difficulty}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Play className="h-3 w-3" /> Start
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+              {templateInterviews.length > 0 ? (
+                templateInterviews.map((interview, index) => (
+                  <motion.div key={interview.id} variants={itemVariants}>
+                    <Link href={`/interviews/room/${interview.id}`}>
+                      <Card className="gradient-card shadow-card hover:shadow-elevated transition-all hover:-translate-y-1 cursor-pointer group">
+                        <CardContent className="p-5">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="p-2.5 rounded-xl bg-primary/10">
+                              <Play className="h-5 w-5 text-primary" />
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {interview.duration} min
+                            </Badge>
+                          </div>
+                          <h3 className="font-display font-semibold text-lg mb-1">
+                            {interview.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                            {interview.description ||
+                              "Practice interview questions"}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">
+                              {interview.difficulty}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Play className="h-3 w-3" /> Start
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8 text-muted-foreground">
+                  <p>No interviews available. Check back later!</p>
+                </div>
+              )}
             </div>
           </motion.div>
 
-          {/* Recent Interviews */}
+          {/* Recent Activity */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -217,7 +267,7 @@ const Dashboard = () => {
               <h2 className="font-display text-xl font-semibold">
                 Recent Activity
               </h2>
-              <Link href="/results">
+              <Link href="/history">
                 <Button variant="ghost" size="sm" className="gap-1">
                   See All <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -225,52 +275,70 @@ const Dashboard = () => {
             </div>
             <Card className="gradient-card shadow-card">
               <CardContent className="p-0">
-                {recentInterviews.map((interview, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 flex items-center gap-4 ${
-                      index !== recentInterviews.length - 1
-                        ? "border-b border-border"
-                        : ""
-                    }`}>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
-                        {interview.title}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {interview.date}
-                      </p>
-                    </div>
-                    <div className="text-right">
+                {recentInterviews.length > 0 ? (
+                  recentInterviews.map((interview, index) => (
+                    <Link key={interview.id} href={`/results/${interview.id}`}>
                       <div
-                        className={`font-display font-bold text-lg ${
-                          interview.score >= 80
-                            ? "text-green-600"
-                            : interview.score >= 60
-                              ? "text-yellow-600"
-                              : "text-red-600"
+                        className={`p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors cursor-pointer ${
+                          index !== recentInterviews.length - 1
+                            ? "border-b border-border"
+                            : ""
                         }`}>
-                        {interview.score}%
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">
+                            {interview.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(interview.updatedAt)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-display font-bold text-lg ${
+                              (interview.results?.overallScore || 0) >= 80
+                                ? "text-green-600"
+                                : (interview.results?.overallScore || 0) >= 60
+                                  ? "text-yellow-600"
+                                  : "text-red-600"
+                            }`}>
+                            {interview.results?.overallScore || 0}%
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <p className="mb-4">No completed interviews yet</p>
+                    <Link href="/interviews">
+                      <Button size="sm">Start Your First Interview</Button>
+                    </Link>
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
 
             {/* Weekly Progress */}
-            <Card className="gradient-card shadow-card mt-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Weekly Goal</CardTitle>
-                <CardDescription>5 of 7 interviews completed</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Progress value={71} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-2">
-                  2 more interviews to reach your weekly goal!
-                </p>
-              </CardContent>
-            </Card>
+            {totalCompleted > 0 && (
+              <Card className="gradient-card shadow-card mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Your Progress</CardTitle>
+                  <CardDescription>
+                    {totalCompleted} interview{totalCompleted !== 1 ? "s" : ""}{" "}
+                    completed
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Progress
+                    value={Math.min((averageScore / 100) * 100, 100)}
+                    className="h-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Average score: {averageScore}%
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </div>
       </main>

@@ -205,7 +205,13 @@ export async function getInterviewSession(interviewId: string) {
         throw new Error("Interview not found");
     }
 
-    return interview;
+    // Return in same format as startInterviewSession
+    const { questions, ...interviewData } = interview;
+
+    return {
+        interview: interviewData,
+        questions: questions,
+    };
 }
 
 /**

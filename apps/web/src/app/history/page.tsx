@@ -268,12 +268,13 @@ const History = () => {
                 ? "Complete your first interview to see it here."
                 : "No interviews match your current filters. Try adjusting your search criteria."
             }
-            action={
-              interviews.length === 0 ? (
-                <Button onClick={() => router.push("/interviews")}>
-                  Browse Interviews
-                </Button>
-              ) : undefined
+            actionLabel={
+              interviews.length === 0 ? "Browse Interviews" : undefined
+            }
+            onAction={
+              interviews.length === 0
+                ? () => router.push("/interviews")
+                : undefined
             }
           />
         )}

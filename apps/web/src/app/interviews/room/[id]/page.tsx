@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,24 +11,24 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Mic,
   MicOff,
-  Video,
-  VideoOff,
-  PhoneOff,
-  MessageSquare,
+  Send,
   Clock,
+  ChevronLeft,
   ChevronRight,
   Brain,
   Sparkles,
-  Volume2,
   Loader2,
+  AlertCircle,
+  Timer,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
-import Navbar from "@/components/layout/Navbar";
 import {
   interviewSessionApi,
   type InterviewSession,
   type InterviewResponse,
 } from "@/lib/api";
+import Navbar from "@/components/layout/Navbar";
 
 const InterviewRoomPage = () => {
   const params = useParams();
@@ -36,10 +36,8 @@ const InterviewRoomPage = () => {
   const { userId } = useAuth();
   const interviewId = params.id as string;
 
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [totalTimeElapsed, setTotalTimeElapsed] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [session, setSession] = useState<InterviewSession | null>(null);
@@ -50,16 +48,64 @@ const InterviewRoomPage = () => {
   );
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [totalDuration, setTotalDuration] = useState(0); // in seconds
+
+  const recognitionRef = useRef<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
+      const SpeechRecognition =
+        (window as any).webkitSpeechRecognition ||
+        (window as any).SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + " ";
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          setCurrentAnswer((prev) => prev + finalTranscript);
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsRecording(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   // Load interview session
   useEffect(() => {
     const loadSession = async () => {
       try {
         setLoading(true);
-        // Try to get existing session first
         let sessionData = await interviewSessionApi.getSession(interviewId);
 
-        // If no questions, start a new session
         if (!sessionData.questions || sessionData.questions.length === 0) {
           sessionData = await interviewSessionApi.startSession(
             interviewId,
@@ -69,6 +115,10 @@ const InterviewRoomPage = () => {
 
         setSession(sessionData);
         setQuestionStartTime(Date.now());
+
+        // Calculate total duration (interview duration in minutes * 60)
+        const durationInSeconds = (sessionData.interview.duration || 30) * 60;
+        setTotalDuration(durationInSeconds);
       } catch (err: any) {
         console.error("Error loading session:", err);
         setError(err.message || "Failed to load interview session");
@@ -82,15 +132,29 @@ const InterviewRoomPage = () => {
     }
   }, [interviewId, userId]);
 
-  // Timer for total elapsed time
+  // Total interview timer with auto-submit
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeElapsed((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    if (!session || totalDuration === 0) return;
 
-  // Simulate AI speaking when question changes
+    const timer = setInterval(() => {
+      setTotalTimeElapsed((prev) => {
+        const newTime = prev + 1;
+
+        // Auto-submit when time is up
+        if (newTime >= totalDuration) {
+          clearInterval(timer);
+          handleFinishInterview(true); // Auto-submit
+          return totalDuration;
+        }
+
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [session, totalDuration]);
+
+  // AI speaking animation
   useEffect(() => {
     if (session?.questions) {
       setIsAISpeaking(true);
@@ -105,16 +169,32 @@ const InterviewRoomPage = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+      alert(
+        "Speech recognition is not supported in your browser. Please use Chrome or Edge.",
+      );
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      recognitionRef.current.start();
+      setIsRecording(true);
+    }
+  };
+
   const getCurrentQuestion = () => {
     if (!session?.questions) return null;
     return session.questions[currentQuestionIndex];
   };
 
-  const handleNextQuestion = () => {
+  const saveCurrentResponse = () => {
     const currentQ = getCurrentQuestion();
     if (!currentQ) return;
 
-    // Save current response
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
     const response: InterviewResponse = {
       questionId: currentQ.id,
@@ -124,9 +204,12 @@ const InterviewRoomPage = () => {
     };
 
     setResponses(new Map(responses.set(currentQ.id, response)));
+  };
+
+  const handleNextQuestion = () => {
+    saveCurrentResponse();
     setCurrentAnswer("");
 
-    // Move to next question
     if (session && currentQuestionIndex < session.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setQuestionStartTime(Date.now());
@@ -135,20 +218,7 @@ const InterviewRoomPage = () => {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      // Save current answer
-      const currentQ = getCurrentQuestion();
-      if (currentQ) {
-        const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-        const response: InterviewResponse = {
-          questionId: currentQ.id,
-          question: currentQ.question,
-          answer: currentAnswer,
-          timeSpent,
-        };
-        setResponses(new Map(responses.set(currentQ.id, response)));
-      }
-
-      // Load previous question's answer
+      saveCurrentResponse();
       setCurrentQuestionIndex((prev) => prev - 1);
       setQuestionStartTime(Date.now());
 
@@ -160,35 +230,24 @@ const InterviewRoomPage = () => {
     }
   };
 
-  const handleFinishInterview = async () => {
+  const handleFinishInterview = async (autoSubmit = false) => {
     try {
       setSubmitting(true);
 
       // Save final answer
-      const currentQ = getCurrentQuestion();
-      if (currentQ) {
-        const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-        const response: InterviewResponse = {
-          questionId: currentQ.id,
-          question: currentQ.question,
-          answer: currentAnswer,
-          timeSpent,
-        };
-        responses.set(currentQ.id, response);
-      }
+      saveCurrentResponse();
 
       // Submit all responses
       const responsesArray = Array.from(responses.values());
-      const result = await interviewSessionApi.submitSession(
-        interviewId,
-        responsesArray,
-      );
+      await interviewSessionApi.submitSession(interviewId, responsesArray);
 
       // Redirect to results page
       router.push(`/results/${interviewId}`);
     } catch (err: any) {
       console.error("Error submitting interview:", err);
-      alert(err.message || "Failed to submit interview");
+      if (!autoSubmit) {
+        alert(err.message || "Failed to submit interview");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -214,6 +273,7 @@ const InterviewRoomPage = () => {
       <div className="min-h-screen gradient-hero flex items-center justify-center">
         <Card className="bg-card/10 backdrop-blur-xl border-border/20 p-8 max-w-md">
           <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
             <p className="text-destructive">{error || "Session not found"}</p>
             <Button onClick={() => router.push("/interviews")}>
               Back to Interviews
@@ -227,62 +287,76 @@ const InterviewRoomPage = () => {
   const currentQuestion = getCurrentQuestion();
   const progress =
     ((currentQuestionIndex + 1) / (session.questions?.length || 1)) * 100;
-  const questionTimeElapsed = Math.floor(
-    (Date.now() - questionStartTime) / 1000,
-  );
-  const timeRemaining = Math.max(0, 60 - questionTimeElapsed); // 1 minute per question
+  const timeRemaining = Math.max(0, totalDuration - totalTimeElapsed);
+  const isTimeRunningOut = timeRemaining < 60; // Less than 1 minute
 
   return (
     <div className="min-h-screen gradient-hero">
       <Navbar />
-      {/* Header */}
+      {/* Header with Timer */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="border-b border-border/20 bg-background/5 backdrop-blur-xl">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Badge
-              variant="secondary"
-              className="bg-green-500/20 text-green-400 border-0">
-              <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
-              Live Interview
-            </Badge>
-            <div className="flex items-center gap-2 text-primary-foreground/70">
-              <Clock className="h-4 w-4" />
-              <span className="font-mono">{formatTime(timeElapsed)}</span>
+        className="border-b border-border/20 bg-background/5 backdrop-blur-xl sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Left: Interview Info */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                <div>
+                  <h1 className="font-display font-semibold text-primary-foreground">
+                    {session.interview.title}
+                  </h1>
+                  <p className="text-xs text-primary-foreground/60">
+                    {session.interview.category} •{" "}
+                    {session.interview.difficulty}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-primary-foreground">
-              <span className="text-sm font-medium">
-                Time for this question:
+
+            {/* Center: Progress */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-primary-foreground/70">
+                Question {currentQuestionIndex + 1} of{" "}
+                {session.questions.length}
               </span>
-              <span
-                className={`font-mono ${timeRemaining < 10 ? "text-destructive" : ""}`}>
-                {formatTime(timeRemaining)}
-              </span>
+              <Progress value={progress} className="w-32 h-2" />
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-primary-foreground/70">
-              Question {currentQuestionIndex + 1} of {session.questions.length}
-            </span>
-            <Progress value={progress} className="w-24 h-2" />
+
+            {/* Right: Total Timer */}
+            <div className="flex items-center gap-2">
+              <Timer
+                className={`h-5 w-5 ${isTimeRunningOut ? "text-destructive animate-pulse" : "text-primary"}`}
+              />
+              <div className="text-right">
+                <div className="text-xs text-primary-foreground/60">
+                  Time Remaining
+                </div>
+                <div
+                  className={`font-mono text-lg font-bold ${isTimeRunningOut ? "text-destructive" : "text-primary-foreground"}`}>
+                  {formatTime(timeRemaining)}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-          {/* Video Feeds */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* AI Interviewer */}
+      <div className="container mx-auto px-4 py-8 pb-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* Left: AI Interviewer */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}>
-              <Card className="overflow-hidden bg-card/10 backdrop-blur-xl border-border/20">
-                <CardContent className="p-0">
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-2">
+              <Card className="bg-card/10 backdrop-blur-xl border-border/20 sticky top-24">
+                <CardContent className="p-6">
+                  {/* AI Avatar */}
+                  <div className="relative aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-6">
                     <motion.div
                       animate={isAISpeaking ? { scale: [1, 1.05, 1] } : {}}
                       transition={{
@@ -294,19 +368,6 @@ const InterviewRoomPage = () => {
                         className={`w-32 h-32 rounded-full gradient-primary flex items-center justify-center ${isAISpeaking ? "animate-pulse-glow" : ""}`}>
                         <Brain className="w-16 h-16 text-primary-foreground" />
                       </div>
-                      {isAISpeaking && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                          <div className="flex items-center gap-1 bg-accent/20 rounded-full px-3 py-1">
-                            <Volume2 className="h-3 w-3 text-accent" />
-                            <span className="text-xs text-accent">
-                              Speaking...
-                            </span>
-                          </div>
-                        </motion.div>
-                      )}
                     </motion.div>
                     <div className="absolute top-4 left-4">
                       <Badge className="bg-background/80 text-foreground">
@@ -315,182 +376,163 @@ const InterviewRoomPage = () => {
                       </Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
 
-            {/* User Video */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 }}>
-              <Card className="overflow-hidden bg-card/10 backdrop-blur-xl border-border/20">
-                <CardContent className="p-0">
-                  <div className="relative aspect-[3/1] bg-gradient-to-br from-foreground/10 to-foreground/5 flex items-center justify-center">
-                    {isVideoOn ? (
-                      <div className="text-primary-foreground/50 text-center">
-                        <Video className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <span className="text-sm">Your camera feed</span>
-                      </div>
-                    ) : (
-                      <div className="text-primary-foreground/50 text-center">
-                        <VideoOff className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <span className="text-sm">Camera is off</span>
-                      </div>
-                    )}
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-background/80 text-foreground">
-                        You
-                      </Badge>
+                  {/* Interview Stats */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-primary-foreground/60">
+                        Total Time
+                      </span>
+                      <span className="font-mono text-primary-foreground">
+                        {formatTime(totalTimeElapsed)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-primary-foreground/60">
+                        Answered
+                      </span>
+                      <span className="font-medium text-primary-foreground">
+                        {responses.size} / {session?.questions?.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-primary-foreground/60">
+                        Duration
+                      </span>
+                      <span className="font-medium text-primary-foreground">
+                        {session?.interview?.duration} min
+                      </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
-          </div>
 
-          {/* Question Panel */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-4">
-            <Card className="bg-card/10 backdrop-blur-xl border-border/20">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  <span className="font-display font-semibold text-primary-foreground">
-                    Current Question
-                  </span>
-                </div>
-                <p className="text-primary-foreground/90 text-lg leading-relaxed">
-                  {currentQuestion?.question}
-                </p>
+            {/* Right: Question & Answer */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-3 space-y-6">
+              {/* Question Card */}
+              <Card className="bg-card/10 backdrop-blur-xl border-border/20">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="font-display text-lg font-semibold text-primary-foreground mb-2">
+                        Question {currentQuestionIndex + 1}
+                      </h2>
+                      <AnimatePresence mode="wait">
+                        <motion.p
+                          key={currentQuestionIndex}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="text-primary-foreground/90 text-lg leading-relaxed">
+                          {currentQuestion?.question}
+                        </motion.p>
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Answer Input */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-primary-foreground/70">
-                    Your Answer
-                  </label>
+              {/* Answer Card */}
+              <Card className="bg-card/10 backdrop-blur-xl border-border/20">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-primary-foreground">
+                      Your Answer
+                    </label>
+                    <Button
+                      variant={isRecording ? "destructive" : "outline"}
+                      size="sm"
+                      onClick={toggleRecording}
+                      className="gap-2">
+                      {isRecording ? (
+                        <>
+                          <MicOff className="h-4 w-4" />
+                          Stop Recording
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="h-4 w-4" />
+                          Speak to Text
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
                   <Textarea
-                    placeholder="Type your answer here..."
+                    ref={textareaRef}
+                    placeholder="Type your answer here or use the 'Speak to Text' button to dictate your response..."
                     value={currentAnswer}
                     onChange={(e) => setCurrentAnswer(e.target.value)}
-                    className="min-h-[120px] bg-background/50 border-border/20"
+                    className="min-h-[300px] text-base bg-background/50 border-border/20 resize-none"
                   />
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Interview Info */}
-            <Card className="bg-accent/10 backdrop-blur-xl border-accent/20">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="h-5 w-5 text-accent mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-accent">
-                      {session?.interview?.title}
-                    </p>
-                    <p className="text-xs text-primary-foreground/70">
-                      {session?.interview?.category} •{" "}
-                      {session?.interview?.difficulty}
-                    </p>
-                    {session?.interview?.topics &&
-                      session?.interview?.topics.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {session?.interview?.topics.map((topic, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="outline"
-                              className="text-xs">
-                              {topic}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                  <div className="flex items-center justify-between text-xs text-primary-foreground/50">
+                    <span>{currentAnswer.length} characters</span>
+                    {isRecording && (
+                      <motion.span
+                        animate={{ opacity: [1, 0.5, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="flex items-center gap-1 text-destructive">
+                        <span className="w-2 h-2 bg-destructive rounded-full" />
+                        Recording...
+                      </motion.span>
+                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Navigation */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 border-border/20 text-primary-foreground hover:bg-primary-foreground/10"
-                disabled={currentQuestionIndex === 0}
-                onClick={handlePreviousQuestion}>
-                Previous
-              </Button>
-              {currentQuestionIndex < session.questions.length - 1 ? (
+              {/* Navigation */}
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  className="flex-1"
-                  onClick={handleNextQuestion}>
-                  Next <ChevronRight className="h-4 w-4" />
+                  size="lg"
+                  className="gap-2"
+                  disabled={currentQuestionIndex === 0}
+                  onClick={handlePreviousQuestion}>
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
                 </Button>
-              ) : (
-                <Button
-                  variant="default"
-                  className="flex-1"
-                  onClick={handleFinishInterview}
-                  disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Finish Interview"
-                  )}
-                </Button>
-              )}
-            </div>
-          </motion.div>
+
+                {currentQuestionIndex < session.questions.length - 1 ? (
+                  <Button
+                    size="lg"
+                    className="flex-1 gap-2"
+                    onClick={handleNextQuestion}
+                    disabled={!currentAnswer.trim()}>
+                    Next Question
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                    onClick={() => handleFinishInterview(false)}
+                    disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Finish Interview
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
-
-      {/* Control Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="fixed bottom-0 left-0 right-0 border-t border-border/20 bg-background/10 backdrop-blur-xl">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-center gap-4">
-          <Button
-            variant={isMicOn ? "secondary" : "destructive"}
-            size="lg"
-            className="rounded-full w-14 h-14"
-            onClick={() => setIsMicOn(!isMicOn)}>
-            {isMicOn ? (
-              <Mic className="h-5 w-5" />
-            ) : (
-              <MicOff className="h-5 w-5" />
-            )}
-          </Button>
-          <Button
-            variant={isVideoOn ? "secondary" : "destructive"}
-            size="lg"
-            className="rounded-full w-14 h-14"
-            onClick={() => setIsVideoOn(!isVideoOn)}>
-            {isVideoOn ? (
-              <Video className="h-5 w-5" />
-            ) : (
-              <VideoOff className="h-5 w-5" />
-            )}
-          </Button>
-          <Button
-            variant="destructive"
-            size="lg"
-            className="rounded-full w-14 h-14"
-            onClick={() => {
-              if (confirm("Are you sure you want to leave the interview?")) {
-                router.push("/interviews");
-              }
-            }}>
-            <PhoneOff className="h-5 w-5" />
-          </Button>
-        </div>
-      </motion.div>
     </div>
   );
 };

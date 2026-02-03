@@ -386,7 +386,7 @@ export default function AuthPage() {
             <span className="font-display font-bold">InterviewAI</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 InterviewAI. All rights reserved.
+            © 2026 InterviewAI. All rights reserved.
           </p>
         </div>
       </footer>

@@ -36,7 +36,7 @@ const Navbar = () => {
     { href: "/interviews", label: "Interviews", icon: Video },
     { href: "/history", label: "History", icon: History },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/settings", label: "Settings", icon: Settings },
+    // { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const publicLinks = [
