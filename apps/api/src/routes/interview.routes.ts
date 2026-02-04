@@ -18,6 +18,21 @@ router.get("/", async (req, res) => {
         // Build filter object
         const filter: any = {};
 
+        // Get authenticated user (if any)
+        const { userId: clerkUserId } = getAuth(req);
+
+        // If user is authenticated and NOT requesting templates, filter by userId
+        if (clerkUserId && template !== "true") {
+            const user = await prisma.user.findUnique({
+                where: { clerkUserId },
+            });
+
+            if (user) {
+                // Filter to show only this user's interviews
+                filter.userId = user.id;
+            }
+        }
+
         // Category filter
         if (category && category !== "all") {
             const categoryMap: Record<string, InterviewCategory> = {
