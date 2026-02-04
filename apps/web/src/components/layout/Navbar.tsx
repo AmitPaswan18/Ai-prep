@@ -86,12 +86,12 @@ const Navbar = () => {
               </SignedOut>
             </Link>
             <>
-              <Link href="/pricing">
+              {/* <Link href="/pricing">
                 <Button variant="ghost">Pricing</Button>
-              </Link>
-              <Link href="/auth?mode=signup">
+              </Link> */}
+              {/* <Link href="/auth?mode=signup">
                 <Button variant="outline">Get Started</Button>
-              </Link>
+              </Link> */}
               <header className="flex justify-end items-center p-4 gap-4 h-16">
                 <SignedIn>
                   <UserButton />
@@ -115,44 +115,55 @@ const Navbar = () => {
             animate={{ opacity: 1, height: "auto" }}
             className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}>
+              <SignedIn>
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2">
+                      <link.icon className="h-4 w-4" />
+                      {link.label}
+                    </Button>
+                  </Link>
+                ))}
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <UserButton />
+                  <span className="text-sm text-muted-foreground">
+                    My Account
+                  </span>
+                </div>
+              </SignedIn>
+
+              <SignedOut>
+                {/* <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-2">
-                    <link.icon className="h-4 w-4" />
-                    {link.label}
-                  </Button>
-                </Link>
-              ))}
-              <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" className="w-full justify-start gap-2">
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </Button>
-              </Link>
-              <>
-                <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full">
+                    <CreditCard className="h-4 w-4" />
                     Pricing
                   </Button>
-                </Link>
-                <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full">
+                </Link> */}
+                <SignInButton>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    // onClick={() => setMobileMenuOpen(false)}
+                  >
                     Sign In
                   </Button>
-                </Link>
-                <Link
-                  href="/auth?mode=signup"
-                  onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">
+                </SignInButton>
+                <SignUpButton>
+                  {/* <Button
+                    variant="default"
+                    className="w-full"
+                    onClick={() => setMobileMenuOpen(false)}>
                     Get Started
-                  </Button>
-                </Link>
-              </>
+                  </Button> */}
+                </SignUpButton>
+              </SignedOut>
             </div>
           </motion.div>
         )}
