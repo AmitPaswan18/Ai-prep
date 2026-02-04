@@ -79,11 +79,11 @@ const testimonials = [
     avatar: "ER",
   },
 ];
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 export default function AuthPage() {
   const [isAuthenticated, setIsAuthenticated] = useState("");
   const getClerkAuth = async () => {
-    const res = await fetch("http://localhost:4000/auth/me", {
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
       method: "GET",
       credentials: "include",
     });
