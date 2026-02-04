@@ -1,5 +1,30 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+/**
+ * Helper to make authenticated API requests
+ * Includes Clerk JWT token in Authorization header for cross-origin requests
+ */
+async function authFetch(url: string, options: RequestInit = {}, getToken?: () => Promise<string | null>): Promise<Response> {
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    // If getToken is provided, add Authorization header
+    if (getToken) {
+        const token = await getToken();
+        if (token) {
+            (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+        }
+    }
+
+    return fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include',
+    });
+}
+
 export interface CreateInterviewData {
     title: string;
     description?: string;
@@ -33,15 +58,11 @@ export interface Interview {
 
 export const interviewApi = {
     // Create a new interview
-    async createInterview(data: CreateInterviewData): Promise<Interview> {
-        const response = await fetch(`${API_BASE_URL}/interview`, {
+    async createInterview(data: CreateInterviewData, getToken?: () => Promise<string | null>): Promise<Interview> {
+        const response = await authFetch(`${API_BASE_URL}/interview`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
             body: JSON.stringify(data),
-        });
+        }, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -57,7 +78,7 @@ export const interviewApi = {
         difficulty?: string;
         search?: string;
         template?: boolean;
-    }): Promise<Interview[]> {
+    }, getToken?: () => Promise<string | null>): Promise<Interview[]> {
         const params = new URLSearchParams();
 
         if (filters?.category && filters.category !== 'all') {
@@ -75,9 +96,7 @@ export const interviewApi = {
 
         const url = `${API_BASE_URL}/interview${params.toString() ? `?${params.toString()}` : ''}`;
 
-        const response = await fetch(url, {
-            credentials: 'include',
-        });
+        const response = await authFetch(url, {}, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -88,10 +107,8 @@ export const interviewApi = {
     },
 
     // Get a single interview by ID
-    async getInterviewById(id: string): Promise<Interview> {
-        const response = await fetch(`${API_BASE_URL}/interview/${id}`, {
-            credentials: 'include',
-        });
+    async getInterviewById(id: string, getToken?: () => Promise<string | null>): Promise<Interview> {
+        const response = await authFetch(`${API_BASE_URL}/interview/${id}`, {}, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -102,7 +119,7 @@ export const interviewApi = {
     },
 
     // Get completed interviews (for history page)
-    async getCompletedInterviews(): Promise<Array<Interview & {
+    async getCompletedInterviews(getToken?: () => Promise<string | null>): Promise<Array<Interview & {
         results?: {
             overallScore: number;
             summary: string;
@@ -114,9 +131,7 @@ export const interviewApi = {
             score: number;
         }>;
     }>> {
-        const response = await fetch(`${API_BASE_URL}/interview?status=COMPLETED`, {
-            credentials: 'include',
-        });
+        const response = await authFetch(`${API_BASE_URL}/interview?status=COMPLETED`, {}, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -162,15 +177,11 @@ export interface InterviewAnalysis {
 
 export const interviewSessionApi = {
     // Start an interview session (generates questions)
-    async startSession(interviewId: string, userId: string): Promise<InterviewSession> {
-        const response = await fetch(`${API_BASE_URL}/interview-session/start/${interviewId}`, {
+    async startSession(interviewId: string, getToken?: () => Promise<string | null>): Promise<InterviewSession> {
+        const response = await authFetch(`${API_BASE_URL}/interview-session/start/${interviewId}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ userId }),
-        });
+            body: JSON.stringify({}),
+        }, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -182,10 +193,8 @@ export const interviewSessionApi = {
     },
 
     // Get interview session details
-    async getSession(interviewId: string): Promise<InterviewSession> {
-        const response = await fetch(`${API_BASE_URL}/interview-session/${interviewId}`, {
-            credentials: 'include',
-        });
+    async getSession(interviewId: string, getToken?: () => Promise<string | null>): Promise<InterviewSession> {
+        const response = await authFetch(`${API_BASE_URL}/interview-session/${interviewId}`, {}, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -199,16 +208,13 @@ export const interviewSessionApi = {
     // Submit interview responses
     async submitSession(
         interviewId: string,
-        responses: InterviewResponse[]
+        responses: InterviewResponse[],
+        getToken?: () => Promise<string | null>
     ): Promise<{ result: any; analysis: InterviewAnalysis }> {
-        const response = await fetch(`${API_BASE_URL}/interview-session/submit/${interviewId}`, {
+        const response = await authFetch(`${API_BASE_URL}/interview-session/submit/${interviewId}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
             body: JSON.stringify({ responses }),
-        });
+        }, getToken);
 
         if (!response.ok) {
             const error = await response.json();
@@ -220,7 +226,7 @@ export const interviewSessionApi = {
     },
 
     // Get interview results
-    async getResults(interviewId: string): Promise<{
+    async getResults(interviewId: string, getToken?: () => Promise<string | null>): Promise<{
         interview: Interview;
         results: {
             overallScore: number;
@@ -240,9 +246,7 @@ export const interviewSessionApi = {
             score: number;
         }>;
     }> {
-        const response = await fetch(`${API_BASE_URL}/interview-session/results/${interviewId}`, {
-            credentials: 'include',
-        });
+        const response = await authFetch(`${API_BASE_URL}/interview-session/results/${interviewId}`, {}, getToken);
 
         if (!response.ok) {
             const error = await response.json();

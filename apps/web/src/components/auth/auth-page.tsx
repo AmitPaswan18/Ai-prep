@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@clerk/nextjs";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,17 +80,27 @@ const testimonials = [
     avatar: "ER",
   },
 ];
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 export default function AuthPage() {
   const [isAuthenticated, setIsAuthenticated] = useState("");
+  const { getToken } = useAuth();
+
   const getClerkAuth = async () => {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      method: "GET",
-      credentials: "include",
-    });
-    const data = await res.json();
-    setIsAuthenticated(data);
-    console.log("Response", data);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: "GET",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      setIsAuthenticated(data);
+      console.log("Response", data);
+    } catch (error) {
+      console.error("Auth error:", error);
+    }
   };
 
   useEffect(() => {
