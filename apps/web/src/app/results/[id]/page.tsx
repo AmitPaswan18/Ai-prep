@@ -32,10 +32,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { interviewSessionApi } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 
 const Results = () => {
   const params = useParams();
   const router = useRouter();
+  const { getToken } = useAuth();
   const interviewId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,10 @@ const Results = () => {
       try {
         setLoading(true);
         setError(null);
-        const results = await interviewSessionApi.getResults(interviewId);
+        const results = await interviewSessionApi.getResults(
+          interviewId,
+          getToken,
+        );
         setData(results);
       } catch (err: any) {
         console.error("Error fetching results:", err);
@@ -60,7 +65,7 @@ const Results = () => {
     if (interviewId) {
       fetchResults();
     }
-  }, [interviewId]);
+  }, [interviewId, getToken]);
 
   if (loading) {
     return (

@@ -31,9 +31,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { interviewApi } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 
 const History = () => {
   const router = useRouter();
+  const { getToken } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("all");
@@ -47,7 +49,7 @@ const History = () => {
         setLoading(true);
         setError(null);
         console.log("Fetching interview history...");
-        const data = await interviewApi.getCompletedInterviews();
+        const data = await interviewApi.getCompletedInterviews(getToken);
         setInterviews(data);
       } catch (err: any) {
         console.error("Error fetching interview history:", err);
@@ -58,7 +60,7 @@ const History = () => {
     };
 
     fetchHistory();
-  }, []);
+  }, [getToken]);
 
   const filteredHistory = interviews.filter((item) => {
     const matchesSearch = item.title

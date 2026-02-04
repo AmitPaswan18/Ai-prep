@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 
 const Interviews = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,6 +40,7 @@ const Interviews = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { getToken } = useAuth();
 
   const categories = [
     { id: "all", label: "All", icon: Globe },
@@ -77,11 +79,14 @@ const Interviews = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await interviewApi.getInterviews({
-          category: selectedCategory,
-          search: searchQuery,
-          // template: true,
-        });
+        const data = await interviewApi.getInterviews(
+          {
+            category: selectedCategory,
+            search: searchQuery,
+            // template: true,
+          },
+          getToken,
+        );
         setInterviews(data);
       } catch (err: any) {
         setError(err.message || "Failed to load interviews");
@@ -91,7 +96,7 @@ const Interviews = () => {
     };
 
     fetchInterviews();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, getToken]);
 
   const filteredInterviews = interviews.filter((interview) => {
     const matchesCategory =

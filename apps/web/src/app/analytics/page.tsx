@@ -42,8 +42,10 @@ import {
 } from "recharts";
 import Link from "next/link";
 import { interviewApi } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 
 const Analytics = () => {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [completedInterviews, setCompletedInterviews] = useState<any[]>([]);
   const [skillRadarData, setSkillRadarData] = useState<any[]>([]);
@@ -53,7 +55,7 @@ const Analytics = () => {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const completed = await interviewApi.getCompletedInterviews();
+        const completed = await interviewApi.getCompletedInterviews(getToken);
         setCompletedInterviews(completed);
 
         // Process skill radar data from completed interviews
@@ -141,7 +143,7 @@ const Analytics = () => {
     };
 
     fetchAnalytics();
-  }, []);
+  }, [getToken]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

@@ -33,7 +33,7 @@ import Navbar from "@/components/layout/Navbar";
 const InterviewRoomPage = () => {
   const params = useParams();
   const router = useRouter();
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const interviewId = params.id as string;
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -104,12 +104,15 @@ const InterviewRoomPage = () => {
     const loadSession = async () => {
       try {
         setLoading(true);
-        let sessionData = await interviewSessionApi.getSession(interviewId);
+        let sessionData = await interviewSessionApi.getSession(
+          interviewId,
+          getToken,
+        );
 
         if (!sessionData.questions || sessionData.questions.length === 0) {
           sessionData = await interviewSessionApi.startSession(
             interviewId,
-            userId || "guest",
+            getToken,
           );
         }
 
@@ -130,7 +133,7 @@ const InterviewRoomPage = () => {
     if (interviewId) {
       loadSession();
     }
-  }, [interviewId, userId]);
+  }, [interviewId, getToken]);
 
   // Total interview timer with auto-submit
   useEffect(() => {
@@ -239,7 +242,11 @@ const InterviewRoomPage = () => {
 
       // Submit all responses
       const responsesArray = Array.from(responses.values());
-      await interviewSessionApi.submitSession(interviewId, responsesArray);
+      await interviewSessionApi.submitSession(
+        interviewId,
+        responsesArray,
+        getToken,
+      );
 
       // Redirect to results page
       router.push(`/results/${interviewId}`);

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { interviewApi } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 
 import Navbar from "@/components/layout/Navbar";
 import PageHeader from "@/components/common/PageHeader";
@@ -49,6 +50,7 @@ import { useRouter } from "next/navigation";
 const InterviewSetup = () => {
   const router = useRouter();
   const { toast } = useToast();
+  const { getToken } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [setup, setSetup] = useState({
     title: "",
@@ -89,7 +91,7 @@ const InterviewSetup = () => {
         level: setup.level,
       };
 
-      await interviewApi.createInterview(interviewData);
+      await interviewApi.createInterview(interviewData, getToken);
 
       toast({
         title: "Success!",

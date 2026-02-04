@@ -25,11 +25,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { interviewApi } from "@/lib/api";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 const Dashboard = () => {
   const router = useRouter();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [completedInterviews, setCompletedInterviews] = useState<any[]>([]);
   const [templateInterviews, setTemplateInterviews] = useState<any[]>([]);
@@ -39,11 +40,14 @@ const Dashboard = () => {
       try {
         setLoading(true);
         // Fetch completed interviews for stats and recent activity
-        const completed = await interviewApi.getCompletedInterviews();
+        const completed = await interviewApi.getCompletedInterviews(getToken);
         setCompletedInterviews(completed);
 
         // Fetch template interviews for "Start an Interview" section
-        const templates = await interviewApi.getInterviews({ template: false });
+        const templates = await interviewApi.getInterviews(
+          { template: false },
+          getToken,
+        );
         setTemplateInterviews(templates.slice(0, 4)); // Show only 4
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -53,7 +57,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [getToken]);
 
   // Calculate stats from real data
   const totalCompleted = completedInterviews.length;
