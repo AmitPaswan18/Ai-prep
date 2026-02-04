@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { requireAuth, getAuth } from "@clerk/express";
+import { prisma } from "@repo/db";
 import {
     startInterviewSession,
     submitInterviewSession,
@@ -9,15 +11,66 @@ import {
 const router = Router();
 
 /**
- * POST /interview-session/start/:interviewId
- * Start an interview session
+ * Helper function to get database user from Clerk auth
  */
-router.post("/start/:interviewId", async (req, res) => {
-    try {
-        const { interviewId } = req.params;
-        const { userId } = req.body; // TODO: Get from auth middleware
+async function getDbUser(req: any) {
+    const { userId: clerkUserId } = getAuth(req);
 
-        const session = await startInterviewSession(interviewId, userId);
+    if (!clerkUserId) {
+        return null;
+    }
+
+    return prisma.user.findUnique({
+        where: { clerkUserId },
+    });
+}
+
+/**
+ * Helper function to verify user owns the interview
+ */
+async function verifyInterviewOwnership(interviewId: string, userId: string) {
+    const interview = await prisma.interview.findUnique({
+        where: { id: interviewId },
+        select: { userId: true, isTemplate: true },
+    });
+
+    if (!interview) {
+        return { valid: false, error: "Interview not found", status: 404 };
+    }
+
+    // Allow access to templates or user's own interviews
+    if (interview.isTemplate || interview.userId === userId) {
+        return { valid: true };
+    }
+
+    return { valid: false, error: "You don't have access to this interview", status: 403 };
+}
+
+/**
+ * POST /interview-session/start/:interviewId
+ * Start an interview session (requires auth)
+ */
+router.post("/start/:interviewId", requireAuth(), async (req, res) => {
+    try {
+        const interviewId = req.params.interviewId as string;
+
+        const user = await getDbUser(req);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+            });
+        }
+
+        const ownership = await verifyInterviewOwnership(interviewId, user.id);
+        if (!ownership.valid) {
+            return res.status(ownership.status!).json({
+                success: false,
+                error: ownership.error,
+            });
+        }
+
+        const session = await startInterviewSession(interviewId, user.id);
 
         res.json({
             success: true,
@@ -34,11 +87,27 @@ router.post("/start/:interviewId", async (req, res) => {
 
 /**
  * GET /interview-session/:interviewId
- * Get interview session details
+ * Get interview session details (requires auth)
  */
-router.get("/:interviewId", async (req, res) => {
+router.get("/:interviewId", requireAuth(), async (req, res) => {
     try {
-        const { interviewId } = req.params;
+        const interviewId = req.params.interviewId as string;
+
+        const user = await getDbUser(req);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+            });
+        }
+
+        const ownership = await verifyInterviewOwnership(interviewId, user.id);
+        if (!ownership.valid) {
+            return res.status(ownership.status!).json({
+                success: false,
+                error: ownership.error,
+            });
+        }
 
         const session = await getInterviewSession(interviewId);
 
@@ -49,7 +118,6 @@ router.get("/:interviewId", async (req, res) => {
     } catch (error: any) {
         console.error("Error fetching interview session:");
         console.error("Error message:", error.message);
-        console.error("Full error:", JSON.stringify(error, null, 2));
         res.status(500).json({
             success: false,
             error: error.message || "Failed to fetch interview session",
@@ -59,12 +127,28 @@ router.get("/:interviewId", async (req, res) => {
 
 /**
  * POST /interview-session/submit/:interviewId
- * Submit interview responses for analysis
+ * Submit interview responses for analysis (requires auth)
  */
-router.post("/submit/:interviewId", async (req, res) => {
+router.post("/submit/:interviewId", requireAuth(), async (req, res) => {
     try {
-        const { interviewId } = req.params;
+        const interviewId = req.params.interviewId as string;
         const { responses } = req.body;
+
+        const user = await getDbUser(req);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+            });
+        }
+
+        const ownership = await verifyInterviewOwnership(interviewId, user.id);
+        if (!ownership.valid) {
+            return res.status(ownership.status!).json({
+                success: false,
+                error: ownership.error,
+            });
+        }
 
         if (!responses || !Array.isArray(responses)) {
             return res.status(400).json({
@@ -90,11 +174,27 @@ router.post("/submit/:interviewId", async (req, res) => {
 
 /**
  * GET /interview-session/results/:interviewId
- * Get interview results with complete analysis
+ * Get interview results with complete analysis (requires auth)
  */
-router.get("/results/:interviewId", async (req, res) => {
+router.get("/results/:interviewId", requireAuth(), async (req, res) => {
     try {
-        const { interviewId } = req.params;
+        const interviewId = req.params.interviewId as string;
+
+        const user = await getDbUser(req);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+            });
+        }
+
+        const ownership = await verifyInterviewOwnership(interviewId, user.id);
+        if (!ownership.valid) {
+            return res.status(ownership.status!).json({
+                success: false,
+                error: ownership.error,
+            });
+        }
 
         const results = await getInterviewResults(interviewId);
 
@@ -112,3 +212,4 @@ router.get("/results/:interviewId", async (req, res) => {
 });
 
 export default router;
+

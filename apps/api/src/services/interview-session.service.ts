@@ -1,8 +1,9 @@
-import { prisma, InterviewStatus } from "@repo/db";
+import { prisma, InterviewStatus, InterviewQuestion as DbInterviewQuestion } from "@repo/db";
 import {
     generateInterviewQuestions,
     analyzeInterviewResponses,
     type InterviewResponse,
+    type InterviewQuestion as AiInterviewQuestion,
 } from "@ai-platform/ai-core";
 
 /**
@@ -43,7 +44,7 @@ export async function startInterviewSession(interviewId: string, userId: string)
 
         // Store questions in database
         questions = await Promise.all(
-            aiQuestions.map((q) =>
+            aiQuestions.map((q: AiInterviewQuestion) =>
                 prisma.interviewQuestion.create({
                     data: {
                         interviewId,
@@ -62,7 +63,7 @@ export async function startInterviewSession(interviewId: string, userId: string)
 
     return {
         interview,
-        questions: questions.map((q) => ({
+        questions: questions.map((q: { id: string; question: string }) => ({
             id: q.id,
             question: q.question,
         })),
@@ -103,7 +104,7 @@ export async function submitInterviewSession(
     // Map AI question scores to actual database questions by index
     // AI returns questionIds like "q1", "q2", etc., but we need to match them to actual DB question IDs
     await Promise.all(
-        analysis.questionScores.map((qs, index) => {
+        analysis.questionScores.map((qs: { questionId: string; score: number; feedback: string }, index: number) => {
             // Extract the question number from AI's questionId (e.g., "q1" -> 0, "q2" -> 1)
             const questionIndex = parseInt(qs.questionId.replace(/\D/g, '')) - 1;
             const dbQuestion = interview.questions[questionIndex];
@@ -150,7 +151,7 @@ export async function submitInterviewSession(
 
     // Store skill scores
     await Promise.all(
-        analysis.skillScores.map((skill) =>
+        analysis.skillScores.map((skill: { skillName: string; score: number }) =>
             prisma.skillScore.upsert({
                 where: {
                     interviewId_skillName: {

@@ -18,18 +18,31 @@ router.get("/", async (req, res) => {
         // Build filter object
         const filter: any = {};
 
-        // Get authenticated user (if any)
-        const { userId: clerkUserId } = getAuth(req);
+        // If requesting templates, allow without auth
+        if (template === "true") {
+            filter.isTemplate = true;
+        } else {
+            // For user's own interviews, require authentication
+            try {
+                const { userId: clerkUserId } = getAuth(req);
 
-        // If user is authenticated and NOT requesting templates, filter by userId
-        if (clerkUserId && template !== "true") {
-            const user = await prisma.user.findUnique({
-                where: { clerkUserId },
-            });
+                if (!clerkUserId) {
+                    return res.status(401).json({ error: "Authentication required to view your interviews" });
+                }
 
-            if (user) {
+                const user = await prisma.user.findUnique({
+                    where: { clerkUserId },
+                });
+
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
                 // Filter to show only this user's interviews
                 filter.userId = user.id;
+            } catch (authError) {
+                console.error("[ERROR] Auth failed:", authError);
+                return res.status(401).json({ error: "Authentication required" });
             }
         }
 
@@ -63,10 +76,7 @@ router.get("/", async (req, res) => {
             filter.search = search as string;
         }
 
-        // Template filter - if true, show only templates (public interviews)
-        if (template === "true") {
-            filter.isTemplate = true;
-        }
+
 
         // Status filter - for fetching completed interviews
         if (status) {
@@ -90,6 +100,30 @@ router.get("/:id", async (req, res) => {
 
         if (!interview) {
             return res.status(404).json({ error: "Interview not found" });
+        }
+
+        // Allow access to templates without auth
+        if (interview.isTemplate) {
+            return res.json(interview);
+        }
+
+        // For non-templates, verify the user owns this interview
+        try {
+            const { userId: clerkUserId } = getAuth(req);
+
+            if (!clerkUserId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+
+            const user = await prisma.user.findUnique({
+                where: { clerkUserId },
+            });
+
+            if (!user || interview.userId !== user.id) {
+                return res.status(403).json({ error: "You don't have access to this interview" });
+            }
+        } catch (authError) {
+            return res.status(401).json({ error: "Authentication required" });
         }
 
         res.json(interview);

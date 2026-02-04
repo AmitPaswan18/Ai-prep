@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 
 // Try to load from various locations to be safe
 dotenv.config({ path: path.join(__dirname, "../../../.env") });
-dotenv.config({ path: path.join(__dirname, "..//.env") });
+dotenv.config({ path: path.join(__dirname, "../.env") });
 const envResult = dotenv.config();
 console.log(`[SERVER] Environment loaded: ${envResult.error ? 'FAILED' : 'SUCCESS'}`);
 console.log(`[SERVER] GEMINI_API_KEY present: ${!!process.env.GEMINI_API_KEY}`);
@@ -37,7 +37,6 @@ app.use(
 );
 app.use(express.json());
 
-// Add Clerk middleware to handle authentication
 app.use(clerkMiddleware());
 
 app.use("/auth", authRoutes);
@@ -69,10 +68,15 @@ const PORT = process.env.PORT || 4000;
 
 // Only listen if not in a serverless environment
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`✅ API Server running on port ${PORT}`);
-    console.log(`📡 Allowed Origins:`, allowedOrigins);
-  });
+  try {
+    app.listen(PORT, () => {
+      console.log(`✅ API Server running on port ${PORT}`);
+      console.log(`📡 Allowed Origins:`, allowedOrigins);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
 }
 
 export default app;
