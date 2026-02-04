@@ -37,6 +37,14 @@ app.use(
 );
 app.use(express.json());
 
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+  next();
+});
+
 app.use(clerkMiddleware());
 
 app.use("/auth", authRoutes);
@@ -66,7 +74,6 @@ app.get("/db-test", async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-// Only listen if not in a serverless environment
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   try {
     app.listen(PORT, () => {
