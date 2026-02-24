@@ -4,6 +4,7 @@ import {
     createInterview,
     getInterviews,
     getInterviewById,
+    updateInterviewRating
 } from "../services/interview.service.js";
 import { prisma, InterviewCategory, InterviewDifficulty } from "@repo/db";
 
@@ -133,6 +134,47 @@ router.get("/:id", async (req, res) => {
     }
 });
 
+// PATCH /interview/:id/rate - Rate an interview
+router.patch("/:id/rate", requireAuth(), async (req, res) => {
+    try {
+        const id = req.params.id as string;
+        const { rating } = req.body;
+
+        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: "Rating must be a number between 1 and 5" });
+        }
+
+        const { userId: clerkUserId } = getAuth(req);
+
+        if (!clerkUserId) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { clerkUserId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // We can allow users to rate templates or their own instances
+        const interview = await getInterviewById(id);
+        if (!interview) {
+            return res.status(404).json({ error: "Interview not found" });
+        }
+
+        const updatedInterview = await prisma.interview.update({
+            where: { id },
+            data: { rating }
+        });
+        res.json(updatedInterview);
+    } catch (error) {
+        console.error("Error rating interview:", error);
+        res.status(500).json({ error: "Failed to rate interview" });
+    }
+});
+
 // POST /interview - Create a new interview (requires auth)
 router.post("/", requireAuth(), async (req, res) => {
     try {
@@ -187,8 +229,8 @@ router.post("/", requireAuth(), async (req, res) => {
             userId: user.id,
             title,
             description,
-            category: category ? categoryMap[category] || "TECHNICAL" : "TECHNICAL",
-            difficulty: difficulty ? difficultyMap[difficulty.toLowerCase()] || "INTERMEDIATE" : "INTERMEDIATE",
+            category: category ? categoryMap[category as string] || "TECHNICAL" : "TECHNICAL",
+            difficulty: difficulty ? difficultyMap[(difficulty as string).toLowerCase()] || "INTERMEDIATE" : "INTERMEDIATE",
             duration: duration || 30,
             topics: topics || [],
             icon,

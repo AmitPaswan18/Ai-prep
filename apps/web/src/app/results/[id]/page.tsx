@@ -43,6 +43,9 @@ const Results = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isRating, setIsRating] = useState(false);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -54,6 +57,9 @@ const Results = () => {
           getToken,
         );
         setData(results);
+        if (results?.interview?.rating) {
+          setRating(results.interview.rating);
+        }
       } catch (err: any) {
         console.error("Error fetching results:", err);
         setError(err.message || "Failed to load results");
@@ -348,6 +354,52 @@ const Results = () => {
                     Difficulty
                   </div>
                   <Badge variant="secondary">{interview.difficulty}</Badge>
+                </div>
+
+                <div className="pt-2 border-t mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Star className="h-4 w-4" />
+                      Rate Interview
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          disabled={isRating}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={async () => {
+                            try {
+                              setIsRating(true);
+
+                              const { interviewApi } =
+                                await import("@/lib/api");
+                              await interviewApi.rateInterview(
+                                interviewId,
+                                star,
+                                getToken,
+                              );
+                              setRating(star);
+                            } catch (err) {
+                              console.error("Failed to rate", err);
+                            } finally {
+                              setIsRating(false);
+                            }
+                          }}
+                          className="focus:outline-none transition-transform hover:scale-110">
+                          <Star
+                            className={`h-5 w-5 ${
+                              (hoverRating || rating) >= star
+                                ? "fill-yellow-500 text-yellow-500"
+                                : "text-muted-foreground hover:text-yellow-400"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

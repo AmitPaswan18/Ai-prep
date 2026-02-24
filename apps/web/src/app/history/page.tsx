@@ -29,6 +29,7 @@ import {
   FileText,
   Loader2,
   AlertCircle,
+  Star,
 } from "lucide-react";
 import { interviewApi } from "@/lib/api";
 import { useAuth } from "@clerk/nextjs";
@@ -232,6 +233,14 @@ const History = () => {
                             <Clock className="h-3.5 w-3.5" />
                             {item.duration} min
                           </div>
+                          {item.rating > 0 && (
+                            <div className="flex items-center gap-1 text-yellow-600">
+                              <Star className="h-3.5 w-3.5 fill-current" />
+                              <span className="font-medium">
+                                {item.rating}/5
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">

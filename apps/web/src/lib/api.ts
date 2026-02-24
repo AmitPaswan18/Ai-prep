@@ -140,6 +140,21 @@ export const interviewApi = {
 
         return response.json();
     },
+
+    // Rate an interview
+    async rateInterview(id: string, rating: number, getToken?: () => Promise<string | null>): Promise<Interview> {
+        const response = await authFetch(`${API_BASE_URL}/interview/${id}/rate`, {
+            method: 'PATCH',
+            body: JSON.stringify({ rating }),
+        }, getToken);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to rate interview');
+        }
+
+        return response.json();
+    },
 };
 
 export interface InterviewQuestion {

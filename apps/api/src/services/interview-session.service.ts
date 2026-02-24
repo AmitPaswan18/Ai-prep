@@ -253,6 +253,7 @@ export async function getInterviewResults(interviewId: string) {
             difficulty: interview.difficulty,
             duration: interview.duration,
             status: interview.status,
+            rating: interview.rating,
         },
         results: {
             overallScore: interview.results.overallScore,
