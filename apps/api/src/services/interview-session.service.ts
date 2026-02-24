@@ -39,7 +39,7 @@ export async function startInterviewSession(interviewId: string, userId: string)
             topics: interview.topics,
             role: interview.role || undefined,
             level: interview.level || undefined,
-            questionCount: 10,
+            questionCount: interview.questionCount || 10,
         });
 
         // Store questions in database

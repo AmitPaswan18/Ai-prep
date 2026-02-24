@@ -26,6 +26,7 @@ model Interview {
   category     InterviewCategory @default(TECHNICAL)
   difficulty   InterviewDifficulty @default(INTERMEDIATE)
   duration     Int      @default(30) 
+  questionCount Int     @default(10)
   rating       Float    @default(0)
   completions  Int      @default(0)
   topics       String[] 

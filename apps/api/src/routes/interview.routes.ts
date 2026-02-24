@@ -204,6 +204,7 @@ router.post("/", requireAuth(), async (req, res) => {
             role,
             level,
             isTemplate,
+            questionCount,
         } = req.body;
 
         if (!title) {
@@ -232,6 +233,7 @@ router.post("/", requireAuth(), async (req, res) => {
             category: category ? categoryMap[category as string] || "TECHNICAL" : "TECHNICAL",
             difficulty: difficulty ? difficultyMap[(difficulty as string).toLowerCase()] || "INTERMEDIATE" : "INTERMEDIATE",
             duration: duration || 30,
+            questionCount: questionCount || 10,
             topics: topics || [],
             icon,
             color,

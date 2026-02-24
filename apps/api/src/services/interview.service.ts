@@ -10,6 +10,7 @@ type CreateInterviewInput = {
     category?: InterviewCategory;
     difficulty?: InterviewDifficulty;
     duration?: number;
+    questionCount?: number;
     topics?: string[];
     icon?: string;
     color?: string;
@@ -37,6 +38,7 @@ export async function createInterview(input: CreateInterviewInput) {
             category: input.category || "TECHNICAL",
             difficulty: input.difficulty || "INTERMEDIATE",
             duration: input.duration || 30,
+            questionCount: input.questionCount || 10,
             topics: input.topics || [],
             icon: input.icon,
             color: input.color,

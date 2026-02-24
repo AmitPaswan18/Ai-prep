@@ -43,7 +43,7 @@ import {
   roleOptions,
   levelOptions,
   interviewTypeOptions,
-  durationOptions,
+  questionCountOptions,
   modeOptions,
 } from "@/lib/mock-data";
 import { useRouter } from "next/navigation";
@@ -58,7 +58,7 @@ const InterviewSetup = () => {
     role: "",
     level: "",
     type: "",
-    duration: "30",
+    questionCount: "10",
     mode: "text",
     topics: [] as string[],
   });
@@ -80,12 +80,19 @@ const InterviewSetup = () => {
 
     setIsLoading(true);
     try {
+      const qCount = parseInt(setup.questionCount);
+      let minsPerQ = 3; // default intermediate
+      if (setup.level === "junior") minsPerQ = 5;
+      else if (setup.level === "senior" || setup.level === "lead") minsPerQ = 2;
+      const computedDuration = qCount * minsPerQ;
+
       const interviewData = {
         title: setup.title,
         description: setup.description,
         category: setup.type as any, // maps to category in backend
         difficulty: setup.level as any,
-        duration: parseInt(setup.duration),
+        duration: computedDuration,
+        questionCount: qCount,
         topics: setup.topics,
         role: setup.role,
         level: setup.level,
@@ -363,23 +370,33 @@ const InterviewSetup = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Interview Duration</Label>
+                    <Label>Number of Questions</Label>
                     <Select
-                      value={setup.duration}
+                      value={setup.questionCount}
                       onValueChange={(v) =>
-                        setSetup((s) => ({ ...s, duration: v }))
+                        setSetup((s) => ({ ...s, questionCount: v }))
                       }>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {durationOptions.map((option) => (
+                        {questionCountOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Duration:{" "}
+                      {parseInt(setup.questionCount) *
+                        (setup.level === "junior"
+                          ? 5
+                          : setup.level === "senior" || setup.level === "lead"
+                            ? 2
+                            : 3)}{" "}
+                      minutes
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -460,9 +477,19 @@ const InterviewSetup = () => {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Duration</span>
+                    <span className="text-muted-foreground">Num Questions</span>
+                    <span className="font-medium">{setup.questionCount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Est. Duration</span>
                     <span className="font-medium">
-                      {setup.duration} minutes
+                      {parseInt(setup.questionCount) *
+                        (setup.level === "junior"
+                          ? 5
+                          : setup.level === "senior" || setup.level === "lead"
+                            ? 2
+                            : 3)}{" "}
+                      minutes
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

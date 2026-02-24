@@ -31,6 +31,7 @@ export interface CreateInterviewData {
     category?: 'technical' | 'behavioral' | 'system-design' | 'case-study';
     difficulty?: 'beginner' | 'intermediate' | 'advanced';
     duration?: number;
+    questionCount?: number;
     topics?: string[];
     role?: string;
     level?: string;
@@ -45,6 +46,7 @@ export interface Interview {
     category: string;
     difficulty: string;
     duration: number;
+    questionCount: number;
     rating: number;
     completions: number;
     topics: string[];

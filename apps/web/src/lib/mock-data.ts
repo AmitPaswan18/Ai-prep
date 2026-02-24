@@ -408,6 +408,14 @@ export const durationOptions = [
     { value: "60", label: "60 minutes" },
 ];
 
+// Question Count Options
+export const questionCountOptions = [
+    { value: "5", label: "5 Questions" },
+    { value: "10", label: "10 Questions" },
+    { value: "15", label: "15 Questions" },
+    { value: "20", label: "20 Questions" },
+];
+
 // Mode Options
 export const modeOptions = [
     { value: "text", label: "Text-based", description: "Type your answers" },
