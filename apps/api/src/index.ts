@@ -39,7 +39,8 @@ app.use((req, res, next) => {
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.set('Surrogate-Control', 'no-store');
-  next();
+  res.set('Cache-Control',
+    next();
 });
 
 app.use(clerkMiddleware());
