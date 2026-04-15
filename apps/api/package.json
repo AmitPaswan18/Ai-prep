@@ -16,11 +16,14 @@
   "dependencies": {
     "@ai-platform/ai-core": "workspace:*",
     "@clerk/express": "^1.7.63",
+    "@deepgram/sdk": "^5.0.0",
     "@prisma/client": "^7.3.0",
     "@repo/db": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "elevenlabs": "^1.59.0",
+    "express": "^5.2.1",
+    "livekit-server-sdk": "^2.15.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

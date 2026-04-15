@@ -7,6 +7,8 @@ import { clerkMiddleware } from "@clerk/express";
 import authRoutes from "./routes/auth.routes.js";
 import interviewRoutes from "./routes/interview.routes.js";
 import interviewSessionRoutes from "./routes/interview-session.routes.js";
+import voiceRoutes from "./routes/voice.routes.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +49,8 @@ app.use(clerkMiddleware());
 app.use("/auth", authRoutes);
 app.use("/interview", interviewRoutes);
 app.use("/interview-session", interviewSessionRoutes);
+app.use("/voice", voiceRoutes);
+
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

@@ -275,3 +275,29 @@ export const interviewSessionApi = {
     },
 };
 
+export const voiceApi = {
+    // Get LiveKit token
+    async getToken(room: string, getToken?: () => Promise<string | null>): Promise<{ token: string }> {
+        const response = await authFetch(`${API_BASE_URL}/voice/token?room=${room}`, {}, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch LiveKit token');
+        }
+        return response.json();
+    },
+
+    // Get TTS audio blob
+    async getTTS(text: string, getToken?: () => Promise<string | null>): Promise<Blob> {
+        const response = await authFetch(`${API_BASE_URL}/voice/tts`, {
+            method: 'POST',
+            body: JSON.stringify({ text }),
+        }, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate TTS');
+        }
+        return response.blob();
+    }
+};
+
+

@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.8",
+    "@deepgram/sdk": "^5.0.0",
+    "@livekit/components-react": "^2.9.20",
+    "@livekit/components-styles": "^1.2.0",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-radio-group": "^1.3.8",
@@ -19,6 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.28.1",
+    "livekit-client": "^2.18.2",
     "lucide-react": "^0.562.0",
     "next": "16.1.3",
     "react": "19.2.3",

@@ -29,6 +29,7 @@ import {
   type InterviewResponse,
 } from "@/lib/api";
 import Navbar from "@/components/layout/Navbar";
+import { useVoice } from "@/hooks/use-voice";
 
 const InterviewRoomPage = () => {
   const params = useParams();
@@ -39,7 +40,6 @@ const InterviewRoomPage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [totalTimeElapsed, setTotalTimeElapsed] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
-  const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,56 +48,35 @@ const InterviewRoomPage = () => {
   );
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [totalDuration, setTotalDuration] = useState(0); // in seconds
 
-  const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Initialize speech recognition
+  // Initialize custom voice hook
+  const {
+      connect: connectVoice,
+      isConnected: isVoiceConnected,
+      isConnecting: isVoiceConnecting,
+      transcript: liveTranscript,
+      setTranscript,
+      speak,
+      isAiTalking
+  } = useVoice(interviewId, getToken);
+
+  // Update current answer when transcript changes
   useEffect(() => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      const SpeechRecognition =
-        (window as any).webkitSpeechRecognition ||
-        (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-
-      recognitionRef.current.onresult = (event: any) => {
-        let interimTranscript = "";
-        let finalTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + " ";
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        if (finalTranscript) {
-          setCurrentAnswer((prev) => prev + finalTranscript);
-        }
-      };
-
-      recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
-        setIsRecording(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsRecording(false);
-      };
+    if (liveTranscript) {
+      setCurrentAnswer(liveTranscript);
     }
+  }, [liveTranscript]);
 
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
+  // AI reads the question when it changes
+  useEffect(() => {
+    if (session?.questions?.[currentQuestionIndex]) {
+      speak(session.questions[currentQuestionIndex].question);
+    }
+  }, [currentQuestionIndex, session, speak]);
+
 
   // Load interview session
   useEffect(() => {
@@ -173,19 +152,8 @@ const InterviewRoomPage = () => {
   };
 
   const toggleRecording = () => {
-    if (!recognitionRef.current) {
-      alert(
-        "Speech recognition is not supported in your browser. Please use Chrome or Edge.",
-      );
-      return;
-    }
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      recognitionRef.current.start();
-      setIsRecording(true);
+    if (!isVoiceConnected) {
+      connectVoice();
     }
   };
 
@@ -212,6 +180,7 @@ const InterviewRoomPage = () => {
   const handleNextQuestion = () => {
     saveCurrentResponse();
     setCurrentAnswer("");
+    setTranscript("");
 
     if (session && currentQuestionIndex < session.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -365,14 +334,14 @@ const InterviewRoomPage = () => {
                   {/* AI Avatar */}
                   <div className="relative aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-6">
                     <motion.div
-                      animate={isAISpeaking ? { scale: [1, 1.05, 1] } : {}}
+                      animate={isAiTalking ? { scale: [1, 1.05, 1] } : {}}
                       transition={{
-                        repeat: isAISpeaking ? Infinity : 0,
+                        repeat: isAiTalking ? Infinity : 0,
                         duration: 0.5,
                       }}
                       className="relative">
                       <div
-                        className={`w-32 h-32 rounded-full gradient-primary flex items-center justify-center ${isAISpeaking ? "animate-pulse-glow" : ""}`}>
+                        className={`w-32 h-32 rounded-full gradient-primary flex items-center justify-center ${isAiTalking ? "animate-pulse-glow" : ""}`}>
                         <Brain className="w-16 h-16 text-primary-foreground" />
                       </div>
                     </motion.div>
@@ -453,20 +422,26 @@ const InterviewRoomPage = () => {
                     <label className="text-sm font-medium text-primary-foreground">
                       Your Answer
                     </label>
-                    <Button
-                      variant={isRecording ? "destructive" : "outline"}
+                     <Button
+                      variant={isVoiceConnected ? "secondary" : "outline"}
                       size="sm"
                       onClick={toggleRecording}
+                      disabled={isVoiceConnecting}
                       className="gap-2">
-                      {isRecording ? (
+                      {isVoiceConnecting ? (
                         <>
-                          <MicOff className="h-4 w-4" />
-                          Stop Recording
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : isVoiceConnected ? (
+                        <>
+                          <Mic className="h-4 w-4 text-green-500" />
+                          Voice Connected
                         </>
                       ) : (
                         <>
                           <Mic className="h-4 w-4" />
-                          Speak to Text
+                          Connect Voice
                         </>
                       )}
                     </Button>
@@ -480,15 +455,15 @@ const InterviewRoomPage = () => {
                     className="min-h-[300px] text-base bg-background/50 border-border/20 resize-none"
                   />
 
-                  <div className="flex items-center justify-between text-xs text-primary-foreground/50">
+                   <div className="flex items-center justify-between text-xs text-primary-foreground/50">
                     <span>{currentAnswer.length} characters</span>
-                    {isRecording && (
+                    {isVoiceConnected && (
                       <motion.span
                         animate={{ opacity: [1, 0.5, 1] }}
                         transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="flex items-center gap-1 text-destructive">
-                        <span className="w-2 h-2 bg-destructive rounded-full" />
-                        Recording...
+                        className="flex items-center gap-1 text-green-500">
+                        <span className="w-2 h-2 bg-green-500 rounded-full" />
+                        Listening via Deepgram...
                       </motion.span>
                     )}
                   </div>
