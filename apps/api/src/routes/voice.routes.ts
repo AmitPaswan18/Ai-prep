@@ -2,12 +2,9 @@ import { Router } from "express";
 import { AccessToken } from "livekit-server-sdk";
 import { requireAuth, getAuth } from "@clerk/express";
 import { ElevenLabsClient } from "elevenlabs";
+import { prisma } from "@repo/db";
 
 const router = Router();
-
-// ElevenLabs configuration
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
-const elevenLabs = new ElevenLabsClient({ apiKey: ELEVENLABS_API_KEY });
 
 /**
  * GET /voice/token
@@ -54,16 +51,27 @@ router.get("/token", requireAuth(), async (req, res) => {
  */
 router.post("/tts", requireAuth(), async (req, res) => {
     try {
+        const { userId: clerkUserId } = getAuth(req);
         const { text } = req.body;
-        const voiceId = process.env.ELEVENLABS_VOICE_ID || "JBF2zOfHhiS98uBUne69"; // Default professional voice
 
         if (!text) {
             return res.status(400).json({ error: "Text is required" });
         }
 
-        if (!ELEVENLABS_API_KEY) {
-            return res.status(500).json({ error: "ElevenLabs API key is missing" });
+        // Fetch user's API key from database
+        const user = await prisma.user.findUnique({
+            where: { clerkUserId: clerkUserId! },
+            select: { elevenLabsApiKey: true }
+        });
+
+        const apiKey = user?.elevenLabsApiKey || process.env.ELEVENLABS_API_KEY;
+
+        if (!apiKey) {
+            return res.status(400).json({ error: "ElevenLabs API key is missing. Please add it in your settings." });
         }
+
+        const voiceId = process.env.ELEVENLABS_VOICE_ID || "JBF2zOfHhiS98uBUne69"; // Default professional voice
+        const elevenLabs = new ElevenLabsClient({ apiKey });
 
         const audio = await elevenLabs.textToSpeech.convert(voiceId, {
             text,

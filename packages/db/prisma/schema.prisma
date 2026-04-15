@@ -12,6 +12,7 @@ model User {
   clerkUserId   String   @unique
   email         String   @unique
   name          String?
+  elevenLabsApiKey String?
   createdAt     DateTime @default(now())
 
   interviews    Interview[]

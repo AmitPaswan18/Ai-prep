@@ -300,4 +300,35 @@ export const voiceApi = {
     }
 };
 
+export const userApi = {
+    // Get user settings
+    async getSettings(getToken?: () => Promise<string | null>): Promise<{
+        elevenLabsApiKey: string | null;
+        email: string;
+        name: string | null;
+    }> {
+        const response = await authFetch(`${API_BASE_URL}/user/settings`, {}, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch settings');
+        }
+        const result = await response.json();
+        return result.data;
+    },
+
+    // Update user settings
+    async updateSettings(data: { elevenLabsApiKey?: string; name?: string }, getToken?: () => Promise<string | null>): Promise<any> {
+        const response = await authFetch(`${API_BASE_URL}/user/settings`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update settings');
+        }
+        return response.json();
+    }
+};
+
+
 

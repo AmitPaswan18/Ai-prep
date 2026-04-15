@@ -8,6 +8,8 @@ import authRoutes from "./routes/auth.routes.js";
 import interviewRoutes from "./routes/interview.routes.js";
 import interviewSessionRoutes from "./routes/interview-session.routes.js";
 import voiceRoutes from "./routes/voice.routes.js";
+import userRoutes from "./routes/user.routes.js";
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,6 +52,8 @@ app.use("/auth", authRoutes);
 app.use("/interview", interviewRoutes);
 app.use("/interview-session", interviewSessionRoutes);
 app.use("/voice", voiceRoutes);
+app.use("/user", userRoutes);
+
 
 
 app.get("/health", (req, res) => {
