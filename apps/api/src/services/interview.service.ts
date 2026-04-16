@@ -134,3 +134,9 @@ export async function updateInterviewRating(id: string, newRating: number) {
         data: { rating: newAvg },
     });
 }
+
+export async function deleteInterview(id: string) {
+    return prisma.interview.delete({
+        where: { id },
+    });
+}

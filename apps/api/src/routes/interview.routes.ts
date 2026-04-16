@@ -4,7 +4,8 @@ import {
     createInterview,
     getInterviews,
     getInterviewById,
-    updateInterviewRating
+    updateInterviewRating,
+    deleteInterview
 } from "../services/interview.service.js";
 import { prisma, InterviewCategory, InterviewDifficulty } from "@repo/db";
 
@@ -251,6 +252,46 @@ router.post("/", requireAuth(), async (req, res) => {
     } catch (error) {
         console.error("Error creating interview:", error);
         res.status(500).json({ error: "Failed to create interview" });
+    }
+});
+
+// DELETE /interview/:id - Delete an interview (requires ownership)
+router.delete("/:id", requireAuth(), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId: clerkUserId } = getAuth(req);
+
+        if (!clerkUserId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { clerkUserId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const interview = await getInterviewById(id);
+        if (!interview) {
+            return res.status(404).json({ error: "Interview not found" });
+        }
+
+        // Only allow deleting non-templates and verify ownership
+        if (interview.isTemplate) {
+            return res.status(403).json({ error: "Templates cannot be deleted by users" });
+        }
+
+        if (interview.userId !== user.id) {
+            return res.status(403).json({ error: "You don't have permission to delete this interview" });
+        }
+
+        await deleteInterview(id);
+        res.json({ success: true, message: "Interview deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting interview:", error);
+        res.status(500).json({ error: "Failed to delete interview" });
     }
 });
 

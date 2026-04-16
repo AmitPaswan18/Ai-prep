@@ -26,7 +26,8 @@ import {
   Globe,
   Database,
   Briefcase,
-  Plus
+  Plus,
+  Trash2
 } from "lucide-react";
 import { interviewApi } from "@/lib/api";
 import { useAuth } from "@clerk/nextjs";
@@ -72,6 +73,15 @@ const Interviews = () => {
     };
     fetchInterviews();
   }, [getToken]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await interviewApi.deleteInterview(id, getToken);
+      setInterviews(prev => prev.filter(i => i.id !== id));
+    } catch (err: any) {
+      alert(err.message || "Failed to delete interview");
+    }
+  };
 
   const filteredInterviews = interviews.filter((interview) => {
     const matchesSearch =
@@ -186,6 +196,22 @@ const Interviews = () => {
                           Start Session <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
                       </Link>
+                      
+                      {!interview.isTemplate && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (confirm("Permanently deconstruct this simulation?")) {
+                              handleDelete(interview.id);
+                            }
+                          }}
+                          className="w-full h-9 rounded-xl font-bold gap-2 text-destructive hover:bg-destructive/10 text-[10px] uppercase tracking-widest mt-2"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Deconstruct Module
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>

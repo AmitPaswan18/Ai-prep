@@ -162,6 +162,20 @@ export const interviewApi = {
 
         return response.json();
     },
+
+    // Delete an interview
+    async deleteInterview(id: string, getToken?: () => Promise<string | null>): Promise<{ success: boolean; message: string }> {
+        const response = await authFetch(`${API_BASE_URL}/interview/${id}`, {
+            method: 'DELETE',
+        }, getToken);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete interview');
+        }
+
+        return response.json();
+    },
 };
 
 export interface InterviewQuestion {
