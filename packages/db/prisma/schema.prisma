@@ -54,7 +54,7 @@ model InterviewQuestion {
   score        Int?
   feedback     String?
 
-  interview    Interview @relation(fields: [interviewId], references: [id])
+  interview    Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
 }
 
 model InterviewResult {
@@ -66,7 +66,7 @@ model InterviewResult {
   weaknesses   String
   createdAt    DateTime @default(now())
 
-  interview    Interview @relation(fields: [interviewId], references: [id])
+  interview    Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
 }
 
 enum InterviewStatus {
@@ -95,7 +95,7 @@ model SkillScore {
   skillName   String
   score       Float
 
-  interview   Interview @relation(fields: [interviewId], references: [id])
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
 
   @@unique([interviewId, skillName], name: "interviewId_skillName")
 }

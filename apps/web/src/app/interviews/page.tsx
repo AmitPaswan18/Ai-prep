@@ -82,6 +82,11 @@ const Interviews = () => {
         setInterviews(data);
       } catch (err: any) {
         setError(err.message || "Failed to load interviews");
+        toast({
+          title: "Synchronization Error",
+          description: err.message || "Failed to fetch simulation blueprints from the neural hub.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }

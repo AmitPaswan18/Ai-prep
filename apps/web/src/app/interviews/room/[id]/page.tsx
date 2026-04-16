@@ -27,6 +27,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { useToast } from "@/hooks/use-toast";
 import {
   interviewSessionApi,
   type InterviewSession,
@@ -38,6 +39,7 @@ import { useVoice } from "@/hooks/use-voice";
 const InterviewRoomPage = () => {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const { getToken } = useAuth();
   const interviewId = params.id as string;
 
@@ -149,7 +151,13 @@ const InterviewRoomPage = () => {
       await interviewSessionApi.submitSession(interviewId, responsesArray, getToken);
       router.push(`/results/${interviewId}`);
     } catch (err: any) {
-      if (!autoSubmit) alert(err.message || "Failed to submit interview");
+      if (!autoSubmit) {
+        toast({
+          title: "Submission Error",
+          description: err.message || "Failed to synchronize interview results with the neural engine.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
