@@ -19,31 +19,36 @@ router.get("/", async (req, res) => {
         // Build filter object
         const filter: any = {};
 
-        // If requesting templates, allow without auth
+        // If requesting templates explicitly
         if (template === "true") {
             filter.isTemplate = true;
         } else {
-            // For user's own interviews, require authentication
+            // For general 'Lab' view, show BOTH templates AND user's own interviews
             try {
                 const { userId: clerkUserId } = getAuth(req);
 
-                if (!clerkUserId) {
-                    return res.status(401).json({ error: "Authentication required to view your interviews" });
+                if (clerkUserId) {
+                    const user = await prisma.user.findUnique({
+                        where: { clerkUserId },
+                    });
+
+                    if (user) {
+                        // Return interviews that are either templates OR owned by this user
+                        filter.OR = [
+                            { isTemplate: true },
+                            { userId: user.id }
+                        ];
+                    } else {
+                        // Fallback to templates only if user record isn't found
+                        filter.isTemplate = true;
+                    }
+                } else {
+                    // Public/Unauthenticated: only show templates
+                    filter.isTemplate = true;
                 }
-
-                const user = await prisma.user.findUnique({
-                    where: { clerkUserId },
-                });
-
-                if (!user) {
-                    return res.status(404).json({ error: "User not found" });
-                }
-
-                // Filter to show only this user's interviews
-                filter.userId = user.id;
             } catch (authError) {
                 console.error("[ERROR] Auth failed:", authError);
-                return res.status(401).json({ error: "Authentication required" });
+                filter.isTemplate = true; // Fallback to templates on error
             }
         }
 

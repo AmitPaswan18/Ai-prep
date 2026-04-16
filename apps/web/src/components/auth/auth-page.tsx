@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@clerk/nextjs";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,13 +11,14 @@ import {
   Brain,
   Sparkles,
   Target,
-  TrendingUp,
   Video,
   MessageSquare,
   BarChart3,
   CheckCircle2,
   Star,
   Users,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
@@ -26,379 +27,245 @@ import Navbar from "../layout/Navbar";
 const features = [
   {
     icon: Brain,
-    title: "AI-Powered Interviews",
-    description:
-      "Practice with intelligent AI that adapts to your responses and provides realistic interview scenarios.",
+    title: "AI-Powered Intelligence",
+    description: "Our neuro-linguistic model adapts to your specific tone and industry jargon for a 1:1 simulation.",
   },
   {
-    icon: MessageSquare,
-    title: "Real-Time Feedback",
-    description:
-      "Get instant analysis of your answers with suggestions for improvement as you practice.",
+    icon: Zap,
+    title: "Instant Behavioral Analysis",
+    description: "Receive micro-feedback on your pacing, fillers, and sentiment analysis within seconds.",
   },
   {
     icon: BarChart3,
-    title: "Performance Analytics",
-    description:
-      "Track your progress with detailed metrics and identify areas that need more practice.",
+    title: "Competency Mapping",
+    description: "Identify exactly which skills are lagging with heatmaps showing your performance trends.",
   },
   {
-    icon: Target,
-    title: "Personalized Learning",
-    description:
-      "Receive customized interview questions based on your target role and experience level.",
+    icon: ShieldCheck,
+    title: "Realistic Stress Testing",
+    description: "Experience high-pressure follow-up questions designed to test your resilience and logic.",
   },
 ];
 
 const stats = [
-  { value: "50K+", label: "Interviews Completed" },
-  { value: "95%", label: "Success Rate" },
-  { value: "4.9", label: "User Rating", icon: Star },
-  { value: "100+", label: "Interview Types" },
-];
-
-const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "Software Engineer at Google",
-    content:
-      "InterviewAI helped me prepare for my dream job. The AI feedback was incredibly accurate and helpful.",
-    avatar: "SC",
-  },
-  {
-    name: "Marcus Johnson",
-    role: "Product Manager at Meta",
-    content:
-      "The variety of interview types and realistic scenarios made all the difference in my preparation.",
-    avatar: "MJ",
-  },
-  {
-    name: "Emily Rodriguez",
-    role: "Data Scientist at Netflix",
-    content:
-      "I went from nervous to confident in just two weeks of practice. Highly recommend!",
-    avatar: "ER",
-  },
+  { value: "50K+", label: "Mock Interviews" },
+  { value: "98%", label: "Placement Rate" },
+  { value: "24/7", label: "AI Availability" },
+  { value: "100+", label: "Standard Roles" },
 ];
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function AuthPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState("");
   const { getToken } = useAuth();
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
 
-  const getClerkAuth = async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_BASE_URL}/auth/me`, {
-        method: "GET",
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
-      setIsAuthenticated(data);
-      console.log("Response", data);
-    } catch (error) {
-      console.error("Auth error:", error);
-    }
-  };
-
-  useEffect(() => {
-    getClerkAuth();
-  }, []);
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 gradient-hero opacity-95" />
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/30 rounded-full blur-3xl" />
+      <section className="relative pt-40 pb-32 px-6 overflow-hidden min-h-[90vh] flex items-center">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse-slow" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
         </div>
 
-        <div className="container mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-primary/20 text-primary-foreground border-primary/30 px-4 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 mr-2" />
-              AI-Powered Interview Practice
-            </Badge>
+        <motion.div 
+          style={{ opacity, scale }}
+          className="container mx-auto relative z-10"
+        >
+          <div className="max-w-5xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Badge className="mb-8 px-4 py-1.5 rounded-full bg-primary/10 text-primary border-primary/20 backdrop-blur-md animate-float">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Next-Gen Interview Preparation
+              </Badge>
+            </motion.div>
 
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 leading-tight">
-              Master Your Next
-              <br />
-              <span className="text-gradient">Interview</span>
-            </h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.8 }}
+              className="font-display text-5xl md:text-8xl font-bold tracking-tight mb-8 leading-[1.1]"
+            >
+              Master the Art of the 
+              <span className="block italic font-medium bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-accent">
+                Perfect Interview
+              </span>
+            </motion.h1>
 
-            <p className="text-lg md:text-xl text-primary-foreground/70 mb-8 max-w-2xl mx-auto">
-              Practice with AI-powered mock interviews, get real-time feedback,
-              and land your dream job. Trusted by professionals at top
-              companies.
-            </p>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed"
+            >
+              The first AI-driven platform that doesn't just ask questions—it teaches you how to answer them with confidence and precision.
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+            >
               <Link href="/auth?mode=signup">
-                <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                  Start Practicing Free
-                  <ArrowRight className="h-5 w-5" />
+                <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-semibold gradient-primary shadow-glow hover:scale-105 transition-all">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/interviews">
-                <Button
-                  variant="outline"
-                  className="gap-2 w-full sm:w-auto border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10">
-                  <Video className="h-5 w-5" />
-                  Watch Demo
+                <Button variant="ghost" size="lg" className="h-14 px-10 rounded-2xl text-lg font-medium hover:bg-muted group">
+                  <Video className="mr-2 h-5 w-5 group-hover:text-primary transition-colors" />
+                  View Core Features
                 </Button>
               </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1, duration: 1 }}
+              className="mt-24 pt-10 border-t border-border/50 grid grid-cols-2 lg:grid-cols-4 gap-8"
+            >
+              {stats.map((stat, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  <span className="text-3xl font-bold font-display">{stat.value}</span>
+                  <span className="text-sm text-muted-foreground uppercase tracking-widest">{stat.label}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-32 relative">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col lg:flex-row gap-20 items-center">
+            <div className="lg:w-1/3">
+              <Badge variant="outline" className="mb-4 border-primary/20 text-primary">Intelligence</Badge>
+              <h2 className="text-4xl md:text-5xl font-bold font-display mb-6">Designed for Professionals</h2>
+              <p className="text-xl text-muted-foreground mb-8">We've built a system that goes deeper than simple flashcards. We analyze the psychology behind your answers.</p>
+              <Button variant="secondary" className="rounded-xl">Read our Whitepaper</Button>
             </div>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="font-display text-3xl md:text-4xl font-bold text-primary-foreground flex items-center justify-center gap-1">
-                  {stat.value}
-                  {stat.icon && (
-                    <Star className="h-5 w-5 fill-yellow-500 text-yellow-500" />
-                  )}
-                </div>
-                <div className="text-sm text-primary-foreground/60">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12">
-            <Badge variant="secondary" className="mb-4">
-              Features
-            </Badge>
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-              Everything You Need to Succeed
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Our AI-powered platform provides comprehensive interview
-              preparation tools designed to help you succeed.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}>
-                <Card className="gradient-card shadow-card hover:shadow-elevated transition-all hover:-translate-y-1 h-full">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4">
-                      <feature.icon className="h-6 w-6 text-primary-foreground" />
+            
+            <div className="lg:w-2/3 grid sm:grid-cols-2 gap-6">
+              {features.map((feature, i) => (
+                <Card key={i} className="group overflow-hidden rounded-3xl border-border/50 bg-muted/30 backdrop-blur-sm hover:border-primary/30 transition-all hover:shadow-elevated">
+                  <CardContent className="p-8">
+                    <div className="w-14 h-14 rounded-2xl bg-background border border-border shadow-soft flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <feature.icon className="h-7 w-7 text-primary" />
                     </div>
-                    <h3 className="font-display font-semibold text-lg mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      {feature.description}
-                    </p>
+                    <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 px-4 bg-muted/50">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12">
-            <Badge variant="secondary" className="mb-4">
-              How It Works
-            </Badge>
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-              Three Steps to Interview Success
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                step: "01",
-                title: "Choose Your Interview",
-                desc: "Select from technical, behavioral, or case study interviews.",
-              },
-              {
-                step: "02",
-                title: "Practice with AI",
-                desc: "Engage in realistic conversations with our AI interviewer.",
-              },
-              {
-                step: "03",
-                title: "Review & Improve",
-                desc: "Get detailed feedback and track your progress over time.",
-              },
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                className="text-center">
-                <div className="font-display text-6xl font-bold text-primary/20 mb-4">
-                  {item.step}
-                </div>
-                <h3 className="font-display font-semibold text-xl mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-muted-foreground">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12">
-            <Badge variant="secondary" className="mb-4">
-              <Users className="h-3.5 w-3.5 mr-2" />
-              Testimonials
-            </Badge>
-            <h2 className="font-display text-3xl md:text-4xl font-bold">
-              Loved by Professionals
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}>
-                <Card className="gradient-card shadow-card h-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-1 mb-4">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className="h-4 w-4 fill-yellow-500 text-yellow-500"
-                        />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground mb-4">
-                      "{testimonial.content}"
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-sm font-semibold text-primary-foreground">
-                        {testimonial.avatar}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">
-                          {testimonial.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {testimonial.role}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+      {/* Social Proof Section (Premium Trust) */}
+      <section className="py-24 bg-muted/20">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-sm uppercase tracking-widest text-muted-foreground mb-12">Empowering talent at global leaders</p>
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
+             {/* Use your generate_image tool if you wanted actual logos, but stylized text for now is premium too */}
+             <span className="text-2xl font-bold font-display opacity-80">GOOGLE</span>
+             <span className="text-2xl font-bold font-display opacity-80">META</span>
+             <span className="text-2xl font-bold font-display opacity-80">STRIPE</span>
+             <span className="text-2xl font-bold font-display opacity-80">NETFLIX</span>
+             <span className="text-2xl font-bold font-display opacity-80">OPENAI</span>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}>
-            <Card className="gradient-hero shadow-elevated overflow-hidden">
-              <CardContent className="p-8 md:p-12 text-center relative">
-                <div className="absolute inset-0 opacity-30">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/50 rounded-full blur-3xl" />
-                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/50 rounded-full blur-3xl" />
-                </div>
-                <div className="relative z-10">
-                  <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-                    Ready to Ace Your Interview?
-                  </h2>
-                  <p className="text-primary-foreground/70 mb-8 max-w-xl mx-auto">
-                    Join thousands of professionals who have transformed their
-                    interview skills with InterviewAI.
-                  </p>
-                  <Link href="/auth?mode=signup">
-                    <Button className="gap-2">
-                      Get Started for Free
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <div className="mt-6 flex items-center justify-center gap-6 text-sm text-primary-foreground/60">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      No credit card required
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Free practice interviews
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+      <section className="py-40 px-6">
+        <div className="max-w-5xl mx-auto">
+          <Card className="relative overflow-hidden rounded-[3rem] border-none shadow-elevated">
+            <div className="absolute inset-0 gradient-primary opacity-90" />
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+            
+            <CardContent className="relative z-10 p-12 md:p-24 text-center">
+              <h2 className="text-4xl md:text-6xl font-bold text-white mb-8">Your next career milestone starts here.</h2>
+              <p className="text-xl text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed">Join 10,000+ candidates who used InterviewAI to secure offers at Fortune 500 companies this year.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <Link href="/auth?mode=signup">
+                  <Button size="lg" className="h-16 px-12 rounded-2xl bg-white text-primary hover:bg-white/90 shadow-xl font-bold text-lg">
+                    Start Your First Session
+                  </Button>
+                </Link>
+              </div>
+              
+              <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-white/60 text-sm font-medium">
+                <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-white" /> 10 Free Tokens</span>
+                <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-white" /> Live AI Interviews</span>
+                <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-white" /> 24/7 Coaching</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8 px-4">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="gradient-primary rounded-lg p-1.5">
-              <Brain className="h-4 w-4 text-primary-foreground" />
+      <footer className="pt-24 pb-12 px-6 border-t border-border/50">
+        <div className="container mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
+            <div className="flex flex-col gap-4 max-w-sm">
+              <Link href="/" className="flex items-center gap-2">
+                <div className="gradient-primary rounded-xl p-2 shadow-glow">
+                  <Brain className="h-5 w-5 text-white" />
+                </div>
+                <span className="font-display font-bold text-xl tracking-tight">InterviewAI</span>
+              </Link>
+              <p className="text-muted-foreground text-sm leading-relaxed italic">
+                Pioneering the intersection of psychology and generative AI to create the most realistic interview training experience available.
+              </p>
             </div>
-            <span className="font-display font-bold">InterviewAI</span>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
+              <div className="flex flex-col gap-4">
+                <span className="font-bold text-sm uppercase tracking-widest">Platform</span>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Features</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Enterprise</Link>
+              </div>
+              <div className="flex flex-col gap-4">
+                <span className="font-bold text-sm uppercase tracking-widest">Resources</span>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Blog</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Guide</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Help Center</Link>
+              </div>
+              <div className="flex flex-col gap-4">
+                <span className="font-bold text-sm uppercase tracking-widest">Legal</span>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Security</Link>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © 2026 InterviewAI. All rights reserved.
-          </p>
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-border/30 text-xs text-muted-foreground">
+            <div className="flex items-center gap-6">
+              <span>Made with ❤️ for candidates everywhere.</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <span>© 2026 InterviewAI Corp. All rights reserved.</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

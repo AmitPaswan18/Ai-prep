@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
-import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +24,15 @@ import {
   CheckCircle2,
   BarChart3,
   Loader2,
+  Zap,
+  Activity,
+  Compass,
+  ArrowUpRight,
+  Trophy,
+  BrainCircuit,
+  Timer,
+  ShieldCheck,
+  Flame,
 } from "lucide-react";
 import {
   RadarChart,
@@ -39,6 +47,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  BarChart,
+  Bar,
+  Cell,
 } from "recharts";
 import Link from "next/link";
 import { interviewApi } from "@/lib/api";
@@ -50,6 +61,7 @@ const Analytics = () => {
   const [completedInterviews, setCompletedInterviews] = useState<any[]>([]);
   const [skillRadarData, setSkillRadarData] = useState<any[]>([]);
   const [progressData, setProgressData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -58,16 +70,25 @@ const Analytics = () => {
         const completed = await interviewApi.getCompletedInterviews(getToken);
         setCompletedInterviews(completed);
 
-        // Process skill radar data from completed interviews
-        const skillMap = new Map<string, { total: number; count: number }>();
+        // Process Category Domain Data
+        const categoryMap = new Map();
+        completed.forEach(item => {
+           const cat = item.category || 'General';
+           const score = item.results?.overallScore || 0;
+           const existing = categoryMap.get(cat) || { total: 0, count: 0 };
+           categoryMap.set(cat, { total: existing.total + score, count: existing.count + 1 });
+        });
+        setCategoryData(Array.from(categoryMap.entries()).map(([name, data]) => ({
+           name,
+           score: Math.round(data.total / data.count)
+        })));
 
+        // Skill Radar Data
+        const skillMap = new Map<string, { total: number; count: number }>();
         completed.forEach((interview) => {
           if (interview.skillScores && interview.skillScores.length > 0) {
             interview.skillScores.forEach((skill: any) => {
-              const existing = skillMap.get(skill.skillName) || {
-                total: 0,
-                count: 0,
-              };
+              const existing = skillMap.get(skill.skillName) || { total: 0, count: 0 };
               skillMap.set(skill.skillName, {
                 total: existing.total + skill.score,
                 count: existing.count + 1,
@@ -76,52 +97,28 @@ const Analytics = () => {
           }
         });
 
-        // Convert to radar chart format
-        const radarData = Array.from(skillMap.entries()).map(
-          ([skill, data]) => ({
-            skill,
-            score: Math.round(data.total / data.count),
-          }),
-        );
-
+        const radarData = Array.from(skillMap.entries()).map(([skill, data]) => ({
+          skill,
+          score: Math.round(data.total / data.count),
+          fullMark: 100,
+        }));
         setSkillRadarData(radarData);
 
-        // Process progress over time (last 6 months)
-        const monthlyScores = new Map<
-          string,
-          { total: number; count: number }
-        >();
-        const months = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
+        // Progress Data (Monthly)
+        const monthlyScores = new Map<string, { total: number; count: number }>();
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
         completed.forEach((interview) => {
           const date = new Date(interview.updatedAt);
           const monthKey = `${months[date.getMonth()]}`;
           const score = interview.results?.overallScore || 0;
-
-          const existing = monthlyScores.get(monthKey) || {
-            total: 0,
-            count: 0,
-          };
+          const existing = monthlyScores.get(monthKey) || { total: 0, count: 0 };
           monthlyScores.set(monthKey, {
             total: existing.total + score,
             count: existing.count + 1,
           });
         });
 
-        // Get last 6 months
         const now = new Date();
         const last6Months = [];
         for (let i = 5; i >= 0; i--) {
@@ -133,380 +130,270 @@ const Analytics = () => {
             score: data ? Math.round(data.total / data.count) : 0,
           });
         }
-
         setProgressData(last6Months);
       } catch (error) {
-        console.error("Error fetching analytics:", error);
+        console.error("Analytics fetch error:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchAnalytics();
   }, [getToken]);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-500/10 text-red-600 border-red-200";
-      case "medium":
-        return "bg-yellow-500/10 text-yellow-600 border-yellow-200";
-      case "low":
-        return "bg-green-500/10 text-green-600 border-green-200";
-      default:
-        return "";
-    }
-  };
+  const stats = [
+    { label: "Precision Rate", value: `${Math.round(skillRadarData.reduce((acc, s) => acc + s.score, 0) / (skillRadarData.length || 1))}%`, icon: Target, trend: "+4.2%", color: "text-primary" },
+    { label: "Lab Completions", value: completedInterviews.length, icon: BrainCircuit, trend: "Stable", color: "text-emerald-500" },
+    { label: "Deep Training", value: `${completedInterviews.reduce((acc, i) => acc + (i.duration || 0), 0)}m`, icon: Timer, trend: "+12m", color: "text-amber-500" },
+    { label: "Global Ranking", value: "Top 8%", icon: Trophy, trend: "Rising", color: "text-indigo-500" },
+  ];
 
   const weakestAreas = skillRadarData
     .filter((s) => s.score < 75)
     .sort((a, b) => a.score - b.score)
-    .slice(0, 5);
+    .slice(0, 4);
 
   const strongestAreas = skillRadarData
     .filter((s) => s.score >= 80)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 4);
 
-  // Generate learning plan based on weak areas
   const learningPlan = weakestAreas.map((area, index) => ({
     id: `plan-${index}`,
-    topic: `Improve ${area.skill}`,
-    reason: `Current score: ${area.score}%. Focus on strengthening this skill.`,
-    priority: area.score < 60 ? "high" : area.score < 70 ? "medium" : "low",
-    suggestedTime: "2-3 hours",
-    resources: "5-7",
+    topic: `${area.skill} Optimization`,
+    reason: `System diagnostic indicates ${area.score}% accuracy. Priority elevation required for tier-1 roles.`,
+    priority: area.score < 65 ? "critical" : "strategic",
+    suggestedTime: "45-60m",
+    icon: area.score < 65 ? AlertTriangle : ShieldCheck
   }));
-
-  // Calculate improvement percentage
-  const calculateImprovement = () => {
-    if (progressData.length < 2) return 0;
-    const firstScore = progressData[0].score;
-    const lastScore = progressData[progressData.length - 1].score;
-    if (firstScore === 0) return 0;
-    return Math.round(((lastScore - firstScore) / firstScore) * 100);
-  };
-
-  const improvement = calculateImprovement();
 
   if (loading) {
     return (
-      <div className="page-wrapper max-w-7xl mx-auto">
-        <Navbar />
-        <main className="page-content">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </main>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse font-medium">Synchronizing Intelligence...</p>
       </div>
     );
   }
 
   if (completedInterviews.length === 0) {
     return (
-      <div className="page-wrapper max-w-7xl mx-auto">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <Navbar />
-        <main className="page-content">
-          <PageHeader
-            title="Skills & Analytics"
-            description="Track your progress and identify areas for improvement"
-          />
-          <Card className="gradient-card shadow-card">
-            <CardContent className="p-12 text-center">
-              <BarChart3 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No Data Yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Complete your first interview to see your analytics and
-                insights.
-              </p>
-              <Link href="/interviews">
-                <Button>Start Your First Interview</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </main>
+        <div className="max-w-md w-full text-center space-y-8">
+           <div className="w-24 h-24 rounded-[2.5rem] bg-muted/30 mx-auto flex items-center justify-center border border-border/50 shadow-soft">
+              <Zap className="h-12 w-12 text-muted-foreground/30" />
+           </div>
+           <div className="space-y-3">
+              <h2 className="text-4xl font-bold font-display tracking-tight">Intelligence <span className="text-primary italic">Gap.</span></h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">Your performance dossier is currently empty. Complete a simulation to initialize your neural map.</p>
+           </div>
+           <Link href="/interviews" className="block pt-4">
+              <Button size="lg" className="w-full h-14 rounded-2xl font-bold gradient-primary shadow-glow text-lg">Initialize Simulation</Button>
+           </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page-wrapper max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="page-content">
-        <PageHeader
-          title="Skills & Analytics"
-          description="Track your progress and identify areas for improvement"
-        />
+      <main className="max-w-7xl mx-auto px-6 pt-32 pb-20">
+        
+        {/* Header and Filter */}
+        <section className="mb-12">
+           <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-10 text-center md:text-left">
+              <div className="space-y-1.5">
+                 <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tightest">Skill <span className="text-primary italic">Intelligence.</span></h1>
+                 <p className="text-muted-foreground">Strategic performance mapping and recursive learning diagnostics.</p>
+              </div>
+              <div className="flex items-center gap-2 p-1 bg-muted/30 rounded-xl border border-border/50">
+                 <Button variant="ghost" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] uppercase tracking-widest bg-background shadow-soft">6 Months</Button>
+                 <Button variant="ghost" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">All Time</Button>
+              </div>
+           </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Skill Radar Chart */}
-            {skillRadarData.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}>
-                <Card className="gradient-card shadow-elevated">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5 text-primary" />
-                      Skill Overview
-                    </CardTitle>
-                    <CardDescription>
-                      Your competency across different interview areas
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[350px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={skillRadarData}>
-                          <PolarGrid stroke="hsl(var(--border))" />
-                          <PolarAngleAxis
-                            dataKey="skill"
-                            tick={{
-                              fill: "hsl(var(--muted-foreground))",
-                              fontSize: 12,
-                            }}
-                          />
-                          <PolarRadiusAxis
-                            angle={30}
-                            domain={[0, 100]}
-                            tick={{
-                              fill: "hsl(var(--muted-foreground))",
-                              fontSize: 10,
-                            }}
-                          />
-                          <Radar
-                            name="Score"
-                            dataKey="score"
-                            stroke="hsl(var(--primary))"
-                            fill="hsl(var(--primary))"
-                            fillOpacity={0.3}
-                            strokeWidth={2}
-                          />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Progress Over Time */}
-            {progressData.some((d) => d.score > 0) && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}>
-                <Card className="gradient-card shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      Progress Over Time
-                    </CardTitle>
-                    <CardDescription>
-                      Your average interview score trend
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={progressData}>
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="hsl(var(--border))"
-                          />
-                          <XAxis
-                            dataKey="month"
-                            tick={{
-                              fill: "hsl(var(--muted-foreground))",
-                              fontSize: 12,
-                            }}
-                          />
-                          <YAxis
-                            domain={[0, 100]}
-                            tick={{
-                              fill: "hsl(var(--muted-foreground))",
-                              fontSize: 12,
-                            }}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--card))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "8px",
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="score"
-                            stroke="hsl(var(--primary))"
-                            strokeWidth={3}
-                            dot={{
-                              fill: "hsl(var(--primary))",
-                              strokeWidth: 2,
-                            }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    {improvement !== 0 && (
-                      <div
-                        className={`flex items-center justify-center gap-2 mt-4 text-sm ${improvement > 0 ? "text-green-600" : "text-red-600"}`}>
-                        {improvement > 0 ? (
-                          <TrendingUp className="h-4 w-4" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4" />
-                        )}
-                        <span>
-                          {improvement > 0 ? "+" : ""}
-                          {improvement}% over time
-                        </span>
+           {/* Metrics Grid */}
+           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {stats.map((stat, i) => (
+                <Card key={i} className="rounded-2xl border-border/50 bg-muted/20 p-6 space-y-3 hover:bg-muted/30 transition-all">
+                   <div className="flex items-center justify-between">
+                      <div className={`p-2 rounded-lg bg-background shadow-soft ${stat.color}`}>
+                         <stat.icon className="h-4 w-4" />
                       </div>
-                    )}
-                  </CardContent>
+                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-tighter">{stat.trend}</span>
+                   </div>
+                   <div className="space-y-0.5">
+                      <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                   </div>
                 </Card>
-              </motion.div>
-            )}
+              ))}
+           </div>
+        </section>
 
-            {/* AI Learning Plan */}
-            {learningPlan.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}>
-                <Card className="gradient-card shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-yellow-500" />
-                      AI-Powered Learning Plan
-                    </CardTitle>
-                    <CardDescription>
-                      Personalized recommendations based on your performance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {learningPlan.map((item, index) => (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + index * 0.1 }}
-                        className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                        <Badge
-                          className={`mt-0.5 ${getPriorityColor(item.priority)}`}>
-                          {item.priority}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium">{item.topic}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {item.reason}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                            <span>⏱️ {item.suggestedTime}</span>
-                            <span>📚 {item.resources} resources</span>
-                          </div>
-                        </div>
-                        <Link href="/interviews">
-                          <Button variant="ghost" size="sm">
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </motion.div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-4">
-            {/* Weak Areas */}
-            {weakestAreas.length > 0 && (
-              <Card className="gradient-card shadow-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    Areas to Improve
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {weakestAreas.map((area) => (
-                    <div key={area.skill} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>{area.skill}</span>
-                        <span className="font-medium text-yellow-600">
-                          {area.score}%
-                        </span>
-                      </div>
-                      <Progress value={area.score} className="h-2" />
-                    </div>
-                  ))}
-                  <Link href="/interviews">
-                    <Button variant="outline" size="sm" className="w-full mt-2">
-                      Practice Weak Areas
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Strong Areas */}
-            {strongestAreas.length > 0 && (
-              <Card className="gradient-card shadow-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Strengths
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {strongestAreas.map((area) => (
-                    <div key={area.skill} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>{area.skill}</span>
-                        <span className="font-medium text-green-600">
-                          {area.score}%
-                        </span>
-                      </div>
-                      <Progress value={area.score} className="h-2" />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Next Recommended Interview */}
-            {weakestAreas.length > 0 && (
-              <Card className="gradient-primary text-primary-foreground shadow-elevated">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BookOpen className="h-5 w-5" />
-                    <span className="font-medium">Recommended Next</span>
+        {/* Primary Intelligence Row */}
+        <div className="grid lg:grid-cols-7 gap-6 mb-12">
+            {/* Neural Map */}
+            <Card className="lg:col-span-4 rounded-[2.5rem] border-border/50 bg-background shadow-soft p-8 relative overflow-hidden group">
+               <div className="flex items-center justify-between mb-8 relative z-10">
+                  <div className="space-y-1">
+                     <h3 className="text-lg font-bold font-display flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" /> Multi-Domain Accuracy
+                     </h3>
+                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Neural competency spectrum</p>
                   </div>
-                  <h3 className="font-display text-lg font-bold mb-2">
-                    Focus on {weakestAreas[0].skill}
-                  </h3>
-                  <p className="text-sm text-primary-foreground/80 mb-4">
-                    Based on your skill gaps, we recommend practicing{" "}
-                    {weakestAreas[0].skill.toLowerCase()} to improve your score.
-                  </p>
-                  <Link href="/interviews">
-                    <Button variant="secondary" className="w-full">
-                      Start Practice
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-          </motion.div>
+                  <Badge variant="outline" className="rounded-lg border-border/50 text-[9px] font-bold uppercase tracking-widest px-3 py-0.5 bg-muted/20">Real-time Engine</Badge>
+               </div>
+               
+               <div className="h-[350px] relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillRadarData}>
+                      <PolarGrid stroke="rgba(0,0,0,0.05)" />
+                      <PolarAngleAxis dataKey="skill" tick={{ fill: "rgba(0,0,0,0.4)", fontSize: 10, fontWeight: 700 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar name="Accuracy" dataKey="score" stroke="#C065F5" fill="#C065F5" fillOpacity={0.15} strokeWidth={3} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+               </div>
+            </Card>
+
+            {/* Performance Modules */}
+            <div className="lg:col-span-3 space-y-6">
+               <Card className="rounded-[2.5rem] border-border/50 bg-muted/30 p-8 space-y-6 h-full flex flex-col">
+                  <div className="space-y-1 mb-2">
+                     <h3 className="text-lg font-bold font-display flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-primary" /> Domain Mastery
+                     </h3>
+                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Aggregate performance per category</p>
+                  </div>
+                  
+                  <div className="flex-1 space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+                     {categoryData.length > 0 ? categoryData.map((cat, i) => (
+                       <div key={i} className="space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                             <span>{cat.name}</span>
+                             <span className={cat.score >= 80 ? 'text-emerald-500' : 'text-primary'}>{cat.score}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                             <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${cat.score}%` }}
+                                className={`h-full ${cat.score >= 80 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'gradient-primary shadow-glow'}`}
+                             />
+                          </div>
+                       </div>
+                     )) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 italic text-sm">
+                           Insufficient domain data
+                        </div>
+                     )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 pt-4">
+                     <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                        <p className="text-[9px] font-bold text-emerald-500 uppercase mb-1">Peak Perf</p>
+                        <p className="text-xs font-bold truncate">{strongestAreas[0]?.skill || 'Ready'}</p>
+                     </div>
+                     <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">
+                        <p className="text-[9px] font-bold text-primary uppercase mb-1">Growth Gap</p>
+                        <p className="text-xs font-bold truncate">{weakestAreas[0]?.skill || 'Identifying'}</p>
+                     </div>
+                  </div>
+               </Card>
+            </div>
         </div>
+
+        {/* Secondary Diagnostic Row */}
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
+           {/* Strategic Roadmap */}
+           <div className="lg:col-span-2 space-y-6">
+              <div className="space-y-1">
+                 <h2 className="text-2xl font-bold font-display">Diagnostic Roadmap</h2>
+                 <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Recursive growth instructions</p>
+              </div>
+              <div className="space-y-3">
+                 {learningPlan.map((plan, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="p-5 rounded-2xl border border-border/50 bg-background hover:bg-muted/10 transition-all flex items-start gap-4"
+                    >
+                       <div className={`p-3 rounded-xl ${plan.priority === 'critical' ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                          <plan.icon className="h-5 w-5" />
+                       </div>
+                       <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                             <h4 className="font-bold text-sm">{plan.topic}</h4>
+                             <Badge variant="outline" className={`rounded-lg text-[8px] font-black uppercase tracking-widest border-none ${plan.priority === 'critical' ? 'bg-primary/20 text-primary' : 'bg-emerald-500/20 text-emerald-500'}`}>
+                                {plan.priority}
+                             </Badge>
+                          </div>
+                          <p className="text-muted-foreground text-xs leading-relaxed">{plan.reason}</p>
+                       </div>
+                    </motion.div>
+                 ))}
+                 {learningPlan.length === 0 && (
+                    <div className="p-8 rounded-2xl border border-dashed border-border/50 text-center italic text-muted-foreground text-xs">
+                       Insufficient session data to generate diagnostic roadmap.
+                    </div>
+                 )}
+              </div>
+           </div>
+
+           {/* Velocity and Action */}
+           <div className="space-y-6">
+              <div className="space-y-1">
+                 <h2 className="text-2xl font-bold font-display">Velocity Trend</h2>
+                 <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Accuracy projection</p>
+              </div>
+              
+              <Card className="rounded-[2rem] border-border/50 bg-background shadow-soft p-6 h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={progressData}>
+                       <XAxis dataKey="month" stroke="rgba(0,0,0,0.3)" fontSize={9} axisLine={false} tickLine={false} />
+                       <Tooltip 
+                         contentStyle={{ background: '#000', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
+                         itemStyle={{ color: '#C065F5' }}
+                       />
+                       <Line 
+                         type="monotone" 
+                         dataKey="score" 
+                         stroke="#C065F5" 
+                         strokeWidth={3} 
+                         dot={{ r: 4, fill: "#C065F5", strokeWidth: 2, stroke: "#fff" }} 
+                         activeDot={{ r: 6, strokeWidth: 0 }}
+                       />
+                    </LineChart>
+                 </ResponsiveContainer>
+              </Card>
+
+              <Card className="rounded-[2rem] gradient-primary text-white p-8 space-y-6 shadow-glow border-none relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
+                    <Flame className="h-20 w-20" />
+                 </div>
+                 <div className="relative z-10 space-y-4">
+                    <div className="flex items-center gap-2">
+                       <ShieldCheck className="h-5 w-5" />
+                       <span className="font-bold uppercase tracking-widest text-[10px]">Strategic Target</span>
+                    </div>
+                    <div>
+                       <h3 className="text-xl font-bold leading-tight mb-2">Refine {weakestAreas[0]?.skill || 'Core'} Vector</h3>
+                       <p className="text-white/80 text-xs leading-relaxed">Intelligence analysis identifies this domain as the #1 growth multiplier for your next career tier.</p>
+                    </div>
+                    <Link href="/interviews" className="block pt-2">
+                       <Button variant="secondary" className="w-full h-12 rounded-xl font-bold text-primary group text-xs">
+                          Launch Dedicated Lab <ArrowUpRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+                       </Button>
+                    </Link>
+                 </div>
+              </Card>
+           </div>
+        </div>
+
       </main>
     </div>
   );

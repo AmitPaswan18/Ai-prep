@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
@@ -22,13 +22,15 @@ import {
   ChevronRight,
   Flame,
   Loader2,
+  Sparkles,
+  ArrowUpRight,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 import { interviewApi } from "@/lib/api";
 import { useUser, useAuth } from "@clerk/nextjs";
 
 const Dashboard = () => {
-  const router = useRouter();
   const { user } = useUser();
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -39,315 +41,240 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch completed interviews for stats and recent activity
         const completed = await interviewApi.getCompletedInterviews(getToken);
         setCompletedInterviews(completed);
-
-        // Fetch template interviews for "Start an Interview" section
-        const templates = await interviewApi.getInterviews(
-          { template: false },
-          getToken,
-        );
-        setTemplateInterviews(templates.slice(0, 4)); // Show only 4
+        const templates = await interviewApi.getInterviews({ template: false }, getToken);
+        setTemplateInterviews(templates.slice(0, 4));
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [getToken]);
 
-  // Calculate stats from real data
   const totalCompleted = completedInterviews.length;
-  const averageScore =
-    totalCompleted > 0
-      ? Math.round(
-          completedInterviews.reduce(
-            (acc, i) => acc + (i.results?.overallScore || 0),
-            0,
-          ) / totalCompleted,
-        )
-      : 0;
-
-  // Calculate total practice hours (assuming each interview duration)
-  const totalHours =
-    completedInterviews.reduce((acc, i) => acc + (i.duration || 0), 0) / 60;
-
-  // Get recent 3 interviews
+  const averageScore = totalCompleted > 0
+    ? Math.round(completedInterviews.reduce((acc, i) => acc + (i.results?.overallScore || 0), 0) / totalCompleted)
+    : 0;
+  const totalHours = completedInterviews.reduce((acc, i) => acc + (i.duration || 0), 0) / 60;
   const recentInterviews = completedInterviews.slice(0, 3);
 
   const stats = [
-    {
-      label: "Interviews Completed",
-      value: totalCompleted.toString(),
-      icon: Target,
-      trend:
-        totalCompleted > 0 ? `${totalCompleted} total` : "Start practicing",
-    },
-    {
-      label: "Practice Hours",
-      value: totalHours.toFixed(1),
-      icon: Clock,
-      trend: `${totalHours.toFixed(1)} hrs`,
-    },
-    {
-      label: "Average Score",
-      value: `${averageScore}%`,
-      icon: TrendingUp,
-      trend: averageScore >= 70 ? "Good progress" : "Keep practicing",
-    },
-    {
-      label: "This Week",
-      value: completedInterviews
-        .filter((i) => {
-          const weekAgo = new Date();
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return new Date(i.updatedAt) > weekAgo;
-        })
-        .length.toString(),
-      icon: Flame,
-      trend: "interviews",
-    },
+    { label: "Completion Rate", value: totalCompleted, icon: Target, suffix: "", color: "bg-blue-500" },
+    { label: "Focus Time", value: totalHours.toFixed(1), icon: Clock, suffix: "h", color: "bg-purple-500" },
+    { label: "Performance", value: averageScore, icon: TrendingUp, suffix: "%", color: "bg-emerald-500" },
+    { label: "Day Streak", value: "4", icon: Flame, suffix: "", color: "bg-orange-500" },
   ];
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  };
 
   if (loading) {
     return (
-      <div className="min-h-screen max-w-7xl mx-auto bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 pt-24 pb-12">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </main>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse font-medium">Synchronizing Profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto bg-background">
+    <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="container mx-auto px-4 pt-24 pb-12">
-        {/* Welcome Section */}
+      <main className="max-w-7xl mx-auto px-6 pt-32 pb-20">
+        {/* Hero Welcome Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8">
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            Welcome back,{" "}
-            <span className="text-gradient">{user?.firstName || "there"}</span>
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Ready to ace your next interview? Let's practice!
-          </p>
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative overflow-hidden rounded-[2.5rem] border border-border/50 bg-muted/30 backdrop-blur-sm p-8 md:p-12 mb-12"
+        >
+          {/* Decorative Blooms */}
+          <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-primary/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-96 h-96 bg-accent/5 rounded-full blur-[100px]" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-4 text-center md:text-left">
+              <Badge variant="outline" className="px-4 py-1.5 rounded-full border-primary/20 text-primary bg-primary/5">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Performance Dashboard
+              </Badge>
+              <h1 className="text-4xl md:text-6xl font-bold font-display tracking-tight">
+                Welcome, <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">{user?.firstName || "Candidate"}</span>
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-xl">
+                You're in the top 15% of candidates this week. One more session to hit your daily goal!
+              </p>
+              <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                <Link href="/interviews">
+                  <Button size="lg" className="rounded-2xl h-12 px-8 gradient-primary shadow-glow hover:scale-105 transition-all">
+                    Start Session <ArrowUpRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Button variant="outline" size="lg" className="rounded-2xl h-12 px-8 border-border/50">
+                  View Analytics
+                </Button>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
-        {/* Stats Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, index) => (
-            <motion.div key={index} variants={itemVariants}>
-              <Card className="gradient-card shadow-card hover:shadow-elevated transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <stat.icon className="h-4 w-4 text-primary" />
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {stats.map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <Card className="rounded-[2rem] border-border/50 bg-background hover:border-primary/30 hover:shadow-soft transition-all group overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 rounded-2xl ${stat.color} bg-opacity-10 transition-transform group-hover:scale-110`}>
+                      <stat.icon className={`h-6 w-6 ${stat.color.replace('bg-', 'text-')}`} />
                     </div>
+                    <Activity className="h-4 w-4 text-muted-foreground opacity-30" />
                   </div>
-                  <div className="font-display text-2xl md:text-3xl font-bold">
-                    {stat.value}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold font-display tracking-tight">{stat.value}</span>
+                    <span className="text-lg font-medium text-muted-foreground">{stat.suffix}</span>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {stat.label}
-                  </div>
-                  <div className="text-xs text-accent mt-1">{stat.trend}</div>
+                  <p className="text-sm text-muted-foreground font-medium mt-1">{stat.label}</p>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Interview Templates */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-semibold">
-                Start an Interview
-              </h2>
-              <Link href="/interviews">
-                <Button variant="ghost" size="sm" className="gap-1">
-                  View All <ChevronRight className="h-4 w-4" />
-                </Button>
+        <div className="grid lg:grid-cols-3 gap-12">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold font-display">Active Modules</h2>
+              <Link href="/interviews" className="text-sm font-semibold text-primary hover:underline flex items-center">
+                Explore All <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {templateInterviews.length > 0 ? (
-                templateInterviews.map((interview, index) => (
-                  <motion.div key={interview.id} variants={itemVariants}>
+
+            <div className="grid sm:grid-cols-2 gap-6">
+              <AnimatePresence>
+                {templateInterviews.map((interview, i) => (
+                  <motion.div
+                    key={interview.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                  >
                     <Link href={`/interviews/room/${interview.id}`}>
-                      <Card className="gradient-card shadow-card hover:shadow-elevated transition-all hover:-translate-y-1 cursor-pointer group">
-                        <CardContent className="p-5">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="p-2.5 rounded-xl bg-primary/10">
-                              <Play className="h-5 w-5 text-primary" />
+                      <Card className="group relative h-full overflow-hidden rounded-[2rem] border-border/50 bg-muted/20 hover:border-primary/50 hover:shadow-elevated transition-all cursor-pointer">
+                        <CardContent className="p-8">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="p-3 bg-background rounded-2xl border border-border shadow-soft group-hover:bg-primary transition-colors">
+                              <Play className="h-6 w-6 text-primary group-hover:text-white transition-colors capitalize" />
                             </div>
-                            <Badge variant="secondary" className="text-xs">
-                              {interview.duration} min
-                            </Badge>
+                            <Badge className="bg-background/50 backdrop-blur-md rounded-lg">{interview.duration}m</Badge>
                           </div>
-                          <h3 className="font-display font-semibold text-lg mb-1">
-                            {interview.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                            {interview.description ||
-                              "Practice interview questions"}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-xs">
-                              {interview.difficulty}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="h-3 w-3" /> Start
-                            </Button>
+                          <h3 className="text-xl font-bold mb-2 tracking-tight group-hover:text-primary transition-colors">{interview.title}</h3>
+                          <p className="text-muted-foreground text-sm line-clamp-2 mb-6">{interview.description || "Simulated technical assessment"}</p>
+                          <div className="flex items-center justify-between pt-4 border-t border-border/10">
+                            <span className="text-xs font-bold uppercase tracking-widest text-primary/70">{interview.difficulty}</span>
+                            <ArrowUpRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </CardContent>
                       </Card>
                     </Link>
                   </motion.div>
-                ))
-              ) : (
-                <div className="col-span-2 text-center py-8 text-muted-foreground">
-                  <p>No interviews available. Check back later!</p>
-                </div>
-              )}
+                ))}
+              </AnimatePresence>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Recent Activity */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-semibold">
-                Recent Activity
-              </h2>
-              <Link href="/history">
-                <Button variant="ghost" size="sm" className="gap-1">
-                  See All <ChevronRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <Card className="gradient-card shadow-card">
-              <CardContent className="p-0">
+          {/* Sidebar Area */}
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold font-display">Recent Activity</h2>
+            <Card className="rounded-[2.5rem] border-border/50 bg-muted/20 backdrop-blur-sm overflow-hidden">
+              <CardContent className="p-2">
                 {recentInterviews.length > 0 ? (
-                  recentInterviews.map((interview, index) => (
-                    <Link key={interview.id} href={`/results/${interview.id}`}>
-                      <div
-                        className={`p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                          index !== recentInterviews.length - 1
-                            ? "border-b border-border"
-                            : ""
-                        }`}>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">
-                            {interview.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(interview.updatedAt)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div
-                            className={`font-display font-bold text-lg ${
-                              (interview.results?.overallScore || 0) >= 80
-                                ? "text-green-600"
-                                : (interview.results?.overallScore || 0) >= 60
-                                  ? "text-yellow-600"
-                                  : "text-red-600"
-                            }`}>
-                            {interview.results?.overallScore || 0}%
+                  <div className="space-y-1">
+                    {recentInterviews.map((interview, i) => (
+                      <Link key={interview.id} href={`/results/${interview.id}`}>
+                        <div className="flex items-center gap-4 p-5 hover:bg-background rounded-3xl transition-all cursor-pointer group">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg ${
+                            (interview.results?.overallScore || 0) >= 80 ? 'bg-emerald-500/10 text-emerald-500' :
+                            (interview.results?.overallScore || 0) >= 60 ? 'bg-orange-500/10 text-orange-500' : 'bg-red-500/10 text-red-500'
+                          }`}>
+                            {interview.results?.overallScore || 0}
                           </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate group-hover:text-primary transition-colors">{interview.title}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(interview.updatedAt)}</p>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                      </div>
-                    </Link>
-                  ))
+                      </Link>
+                    ))}
+                  </div>
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <p className="mb-4">No completed interviews yet</p>
-                    <Link href="/interviews">
-                      <Button size="sm">Start Your First Interview</Button>
-                    </Link>
+                  <div className="p-12 text-center space-y-6">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                      <Activity className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="font-bold">No Data Points</p>
+                      <p className="text-sm text-muted-foreground">Your performance metrics will appear here after your first session.</p>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Weekly Progress */}
+            {/* Growth Card */}
             {totalCompleted > 0 && (
-              <Card className="gradient-card shadow-card mt-4">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Your Progress</CardTitle>
-                  <CardDescription>
-                    {totalCompleted} interview{totalCompleted !== 1 ? "s" : ""}{" "}
-                    completed
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Progress
-                    value={Math.min((averageScore / 100) * 100, 100)}
-                    className="h-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Average score: {averageScore}%
-                  </p>
-                </CardContent>
+              <Card className="rounded-[2.5rem] bg-gradient-dark border-none shadow-glow p-8 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                  <TrendingUp className="h-12 w-12" />
+                </div>
+                <div className="relative z-10 space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold">Performance Goal</h3>
+                    <p className="text-white/60 text-sm">Target: 90% accuracy</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                      <span>Progress</span>
+                      <span>{averageScore}%</span>
+                    </div>
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${averageScore}%` }}
+                        className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/40 italic">Last assessment: {formatDate(completedInterviews[0].updatedAt)}</p>
+                </div>
               </Card>
             )}
-          </motion.div>
+          </div>
         </div>
       </main>
     </div>
   );
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 };
 
 export default Dashboard;

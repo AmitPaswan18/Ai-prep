@@ -35,57 +35,53 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  --radius: 0.75rem;
+  --radius: 1rem;
 
   /* Font families */
   --font-family-sans: "Inter", system-ui, sans-serif;
   --font-family-display: "Space Grotesk", system-ui, sans-serif;
 
-  /* Custom CSS properties */
+  /* Premium Gradients */
   --gradient-primary: linear-gradient(
     135deg,
-    hsl(217 91% 60%) 0%,
-    hsl(200 90% 50%) 100%
+    hsl(250 85% 65%) 0%,
+    hsl(265 90% 60%) 50%,
+    hsl(285 90% 55%) 100%
   );
-  --gradient-accent: linear-gradient(
-    135deg,
-    hsl(173 80% 40%) 0%,
-    hsl(190 80% 45%) 100%
+  --gradient-aurora: linear-gradient(
+    120deg,
+    hsl(250 85% 65%) 0%,
+    hsl(190 90% 55%) 100%
   );
-  --gradient-hero: linear-gradient(
-    135deg,
-    hsl(222 47% 8%) 0%,
-    hsl(217 50% 15%) 50%,
-    hsl(200 50% 20%) 100%
-  );
-  --gradient-card: linear-gradient(
+  --gradient-dark: linear-gradient(
     180deg,
-    hsl(0 0% 100%) 0%,
-    hsl(210 40% 98%) 100%
+    hsl(222 47% 4%) 0%,
+    hsl(222 47% 8%) 100%
   );
-  --gradient-success: linear-gradient(
+  --gradient-glass: linear-gradient(
     135deg,
-    hsl(142 76% 36%) 0%,
-    hsl(160 70% 40%) 100%
-  );
-  --gradient-warning: linear-gradient(
-    135deg,
-    hsl(38 92% 50%) 0%,
-    hsl(25 90% 55%) 100%
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0) 100%
   );
 
-  --shadow-soft: 0 4px 20px -2px hsl(217 91% 60% / 0.15);
-  --shadow-card: 0 4px 30px -4px hsl(222 47% 11% / 0.08);
-  --shadow-elevated: 0 20px 60px -15px hsl(222 47% 11% / 0.2);
+  /* Premium Shadows */
+  --shadow-glow: 0 0 20px -5px hsl(250 85% 65% / 0.5);
+  --shadow-soft: 0 10px 40px -10px hsl(222 47% 11% / 0.1);
+  --shadow-elevated: 0 25px 50px -12px hsl(222 47% 11% / 0.25);
 
-  --sidebar-background: hsl(var(--sidebar-background));
-  --sidebar-foreground: hsl(var(--sidebar-foreground));
-  --sidebar-primary: hsl(var(--sidebar-primary));
-  --sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --sidebar-accent: hsl(var(--sidebar-accent));
-  --sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --sidebar-border: hsl(var(--sidebar-border));
-  --sidebar-ring: hsl(var(--sidebar-ring));
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
 }
 
 /* CSS variables must be defined after @theme */

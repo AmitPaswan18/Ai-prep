@@ -108,6 +108,11 @@ export const interviewApi = {
         return response.json();
     },
 
+    // Alias for getInterviews to support existing component calls
+    async getAllInterviews(getToken?: () => Promise<string | null>): Promise<Interview[]> {
+        return this.getInterviews({}, getToken);
+    },
+
     // Get a single interview by ID
     async getInterviewById(id: string, getToken?: () => Promise<string | null>): Promise<Interview> {
         const response = await authFetch(`${API_BASE_URL}/interview/${id}`, {}, getToken);

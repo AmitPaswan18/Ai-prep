@@ -21,6 +21,10 @@ import {
   AlertCircle,
   Timer,
   CheckCircle2,
+  Activity,
+  Zap,
+  Volume2,
+  User,
 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import {
@@ -34,7 +38,7 @@ import { useVoice } from "@/hooks/use-voice";
 const InterviewRoomPage = () => {
   const params = useParams();
   const router = useRouter();
-  const { userId, getToken } = useAuth();
+  const { getToken } = useAuth();
   const interviewId = params.id as string;
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,16 +47,13 @@ const InterviewRoomPage = () => {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [responses, setResponses] = useState<Map<string, InterviewResponse>>(
-    new Map(),
-  );
+  const [responses, setResponses] = useState<Map<string, InterviewResponse>>(new Map());
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [totalDuration, setTotalDuration] = useState(0); // in seconds
+  const [totalDuration, setTotalDuration] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Initialize custom voice hook
   const {
       connect: connectVoice,
       isConnected: isVoiceConnected,
@@ -63,87 +64,53 @@ const InterviewRoomPage = () => {
       isAiTalking
   } = useVoice(interviewId, getToken);
 
-  // Update current answer when transcript changes
   useEffect(() => {
     if (liveTranscript) {
       setCurrentAnswer(liveTranscript);
     }
   }, [liveTranscript]);
 
-  // AI reads the question when it changes
   useEffect(() => {
     if (session?.questions?.[currentQuestionIndex]) {
       speak(session.questions[currentQuestionIndex].question);
     }
   }, [currentQuestionIndex, session, speak]);
 
-
-  // Load interview session
   useEffect(() => {
     const loadSession = async () => {
       try {
         setLoading(true);
-        let sessionData = await interviewSessionApi.getSession(
-          interviewId,
-          getToken,
-        );
-
+        let sessionData = await interviewSessionApi.getSession(interviewId, getToken);
         if (!sessionData.questions || sessionData.questions.length === 0) {
-          sessionData = await interviewSessionApi.startSession(
-            interviewId,
-            getToken,
-          );
+          sessionData = await interviewSessionApi.startSession(interviewId, getToken);
         }
-
         setSession(sessionData);
         setQuestionStartTime(Date.now());
-
-        // Calculate total duration (interview duration in minutes * 60)
-        const durationInSeconds = (sessionData.interview.duration || 30) * 60;
-        setTotalDuration(durationInSeconds);
+        setTotalDuration((sessionData.interview.duration || 30) * 60);
       } catch (err: any) {
-        console.error("Error loading session:", err);
         setError(err.message || "Failed to load interview session");
       } finally {
         setLoading(false);
       }
     };
-
-    if (interviewId) {
-      loadSession();
-    }
+    if (interviewId) loadSession();
   }, [interviewId, getToken]);
 
-  // Total interview timer with auto-submit
   useEffect(() => {
     if (!session || totalDuration === 0) return;
-
     const timer = setInterval(() => {
       setTotalTimeElapsed((prev) => {
         const newTime = prev + 1;
-
-        // Auto-submit when time is up
         if (newTime >= totalDuration) {
           clearInterval(timer);
-          handleFinishInterview(true); // Auto-submit
+          handleFinishInterview(true);
           return totalDuration;
         }
-
         return newTime;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [session, totalDuration]);
-
-  // AI speaking animation
-  useEffect(() => {
-    if (session?.questions) {
-      setIsAISpeaking(true);
-      const timeout = setTimeout(() => setIsAISpeaking(false), 2000);
-      return () => clearTimeout(timeout);
-    }
-  }, [currentQuestionIndex, session]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -151,21 +118,9 @@ const InterviewRoomPage = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const toggleRecording = () => {
-    if (!isVoiceConnected) {
-      connectVoice();
-    }
-  };
-
-  const getCurrentQuestion = () => {
-    if (!session?.questions) return null;
-    return session.questions[currentQuestionIndex];
-  };
-
   const saveCurrentResponse = () => {
-    const currentQ = getCurrentQuestion();
+    const currentQ = session?.questions?.[currentQuestionIndex];
     if (!currentQ) return;
-
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
     const response: InterviewResponse = {
       questionId: currentQ.id,
@@ -173,7 +128,6 @@ const InterviewRoomPage = () => {
       answer: currentAnswer,
       timeSpent,
     };
-
     setResponses(new Map(responses.set(currentQ.id, response)));
   };
 
@@ -181,49 +135,21 @@ const InterviewRoomPage = () => {
     saveCurrentResponse();
     setCurrentAnswer("");
     setTranscript("");
-
     if (session && currentQuestionIndex < session.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setQuestionStartTime(Date.now());
     }
   };
 
-  const handlePreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      saveCurrentResponse();
-      setCurrentQuestionIndex((prev) => prev - 1);
-      setQuestionStartTime(Date.now());
-
-      const prevQ = session?.questions[currentQuestionIndex - 1];
-      if (prevQ) {
-        const prevResponse = responses.get(prevQ.id);
-        setCurrentAnswer(prevResponse?.answer || "");
-      }
-    }
-  };
-
   const handleFinishInterview = async (autoSubmit = false) => {
     try {
       setSubmitting(true);
-
-      // Save final answer
       saveCurrentResponse();
-
-      // Submit all responses
       const responsesArray = Array.from(responses.values());
-      await interviewSessionApi.submitSession(
-        interviewId,
-        responsesArray,
-        getToken,
-      );
-
-      // Redirect to results page
+      await interviewSessionApi.submitSession(interviewId, responsesArray, getToken);
       router.push(`/results/${interviewId}`);
     } catch (err: any) {
-      console.error("Error submitting interview:", err);
-      if (!autoSubmit) {
-        alert(err.message || "Failed to submit interview");
-      }
+      if (!autoSubmit) alert(err.message || "Failed to submit interview");
     } finally {
       setSubmitting(false);
     }
@@ -231,290 +157,202 @@ const InterviewRoomPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen gradient-hero flex items-center justify-center">
-        <Card className="bg-card/10 backdrop-blur-xl border-border/20 p-8">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-primary-foreground">
-              Loading interview session...
-            </p>
-          </div>
-        </Card>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="w-24 h-24 rounded-full border-t-2 border-primary animate-spin mb-6" />
+        <p className="text-muted-foreground font-display text-lg animate-pulse">Initializing Neural Bridge...</p>
       </div>
     );
   }
 
-  if (error || !session) {
-    return (
-      <div className="min-h-screen gradient-hero flex items-center justify-center">
-        <Card className="bg-card/10 backdrop-blur-xl border-border/20 p-8 max-w-md">
-          <div className="text-center space-y-4">
-            <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
-            <p className="text-destructive">{error || "Session not found"}</p>
-            <Button onClick={() => router.push("/interviews")}>
-              Back to Interviews
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  const currentQuestion = getCurrentQuestion();
-  const progress =
-    ((currentQuestionIndex + 1) / (session.questions?.length || 1)) * 100;
+  const currentQuestion = session?.questions?.[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / (session?.questions?.length || 1)) * 100;
   const timeRemaining = Math.max(0, totalDuration - totalTimeElapsed);
-  const isTimeRunningOut = timeRemaining < 60; // Less than 1 minute
 
   return (
-    <div className="min-h-screen gradient-hero">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      {/* Header with Timer */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="border-b border-border/20 bg-background/5 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            {/* Left: Interview Info */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                <div>
-                  <h1 className="font-display font-semibold text-primary-foreground">
-                    {session.interview.title}
-                  </h1>
-                  <p className="text-xs text-primary-foreground/60">
-                    {session.interview.category} •{" "}
-                    {session.interview.difficulty}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            {/* Center: Progress */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-primary-foreground/70">
-                Question {currentQuestionIndex + 1} of{" "}
-                {session.questions.length}
-              </span>
-              <Progress value={progress} className="w-32 h-2" />
-            </div>
-
-            {/* Right: Total Timer */}
-            <div className="flex items-center gap-2">
-              <Timer
-                className={`h-5 w-5 ${isTimeRunningOut ? "text-destructive animate-pulse" : "text-primary"}`}
-              />
-              <div className="text-right">
-                <div className="text-xs text-primary-foreground/60">
-                  Time Remaining
+      {/* Top Bar - High Precision Navigation */}
+      <div className="pt-24 px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto py-4 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+             <div className="p-3 bg-muted rounded-2xl border border-border">
+                <Brain className="h-6 w-6 text-primary" />
+             </div>
+             <div className="hidden sm:block">
+                <h2 className="font-bold tracking-tight">{session?.interview?.title}</h2>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                  <span className="text-primary/70">{session?.interview?.category}</span>
+                  <span className="opacity-20">•</span>
+                  <span>{session?.interview?.difficulty}</span>
                 </div>
-                <div
-                  className={`font-mono text-lg font-bold ${isTimeRunningOut ? "text-destructive" : "text-primary-foreground"}`}>
-                  {formatTime(timeRemaining)}
-                </div>
-              </div>
-            </div>
+             </div>
           </div>
-        </div>
-      </motion.div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 pb-24">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid lg:grid-cols-5 gap-6">
-            {/* Left: AI Interviewer */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-2">
-              <Card className="bg-card/10 backdrop-blur-xl border-border/20 sticky top-24">
-                <CardContent className="p-6">
-                  {/* AI Avatar */}
-                  <div className="relative aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-6">
-                    <motion.div
-                      animate={isAiTalking ? { scale: [1, 1.05, 1] } : {}}
-                      transition={{
-                        repeat: isAiTalking ? Infinity : 0,
-                        duration: 0.5,
-                      }}
-                      className="relative">
-                      <div
-                        className={`w-32 h-32 rounded-full gradient-primary flex items-center justify-center ${isAiTalking ? "animate-pulse-glow" : ""}`}>
-                        <Brain className="w-16 h-16 text-primary-foreground" />
-                      </div>
-                    </motion.div>
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-background/80 text-foreground">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        AI Interviewer
-                      </Badge>
-                    </div>
-                  </div>
+          <div className="flex-1 max-w-sm px-8 hidden md:block">
+             <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+                <span>Phase Progress</span>
+                <span>{Math.round(progress)}%</span>
+             </div>
+             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  className="h-full gradient-primary shadow-glow"
+                />
+             </div>
+          </div>
 
-                  {/* Interview Stats */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-primary-foreground/60">
-                        Total Time
-                      </span>
-                      <span className="font-mono text-primary-foreground">
-                        {formatTime(totalTimeElapsed)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-primary-foreground/60">
-                        Answered
-                      </span>
-                      <span className="font-medium text-primary-foreground">
-                        {responses.size} / {session?.questions?.length}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-primary-foreground/60">
-                        Duration
-                      </span>
-                      <span className="font-medium text-primary-foreground">
-                        {session?.interview?.duration} min
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Right: Question & Answer */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-3 space-y-6">
-              {/* Question Card */}
-              <Card className="bg-card/10 backdrop-blur-xl border-border/20">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h2 className="font-display text-lg font-semibold text-primary-foreground mb-2">
-                        Question {currentQuestionIndex + 1}
-                      </h2>
-                      <AnimatePresence mode="wait">
-                        <motion.p
-                          key={currentQuestionIndex}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="text-primary-foreground/90 text-lg leading-relaxed">
-                          {currentQuestion?.question}
-                        </motion.p>
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Answer Card */}
-              <Card className="bg-card/10 backdrop-blur-xl border-border/20">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-primary-foreground">
-                      Your Answer
-                    </label>
-                     <Button
-                      variant={isVoiceConnected ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={toggleRecording}
-                      disabled={isVoiceConnecting}
-                      className="gap-2">
-                      {isVoiceConnecting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Connecting...
-                        </>
-                      ) : isVoiceConnected ? (
-                        <>
-                          <Mic className="h-4 w-4 text-green-500" />
-                          Voice Connected
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="h-4 w-4" />
-                          Connect Voice
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  <Textarea
-                    ref={textareaRef}
-                    placeholder="Type your answer here or use the 'Speak to Text' button to dictate your response..."
-                    value={currentAnswer}
-                    onChange={(e) => setCurrentAnswer(e.target.value)}
-                    className="min-h-[300px] text-base bg-background/50 border-border/20 resize-none"
-                  />
-
-                   <div className="flex items-center justify-between text-xs text-primary-foreground/50">
-                    <span>{currentAnswer.length} characters</span>
-                    {isVoiceConnected && (
-                      <motion.span
-                        animate={{ opacity: [1, 0.5, 1] }}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="flex items-center gap-1 text-green-500">
-                        <span className="w-2 h-2 bg-green-500 rounded-full" />
-                        Listening via Deepgram...
-                      </motion.span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Navigation */}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="gap-2"
-                  disabled={currentQuestionIndex === 0}
-                  onClick={handlePreviousQuestion}>
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-
-                {currentQuestionIndex < session.questions.length - 1 ? (
-                  <Button
-                    size="lg"
-                    className="flex-1 gap-2"
-                    onClick={handleNextQuestion}
-                    disabled={!currentAnswer.trim()}>
-                    Next Question
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    size="lg"
-                    className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
-                    onClick={() => handleFinishInterview(false)}
-                    disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Finish Interview
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </motion.div>
+          <div className="flex items-center gap-6">
+             <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Time Remaining</p>
+                <p className={`font-mono text-xl font-bold tracking-tighter ${timeRemaining < 60 ? 'text-destructive animate-pulse' : 'text-foreground'}`}>
+                  {formatTime(timeRemaining)}
+                </p>
+             </div>
+             <Button variant="ghost" className="rounded-xl h-12 px-5 border border-border/50 hover:bg-muted" onClick={() => router.push('/dashboard')}>
+                Exit
+             </Button>
           </div>
         </div>
       </div>
+
+      {/* Main Studio Area */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12 grid lg:grid-cols-5 gap-12">
+        
+        {/* Left Phase - Artificial Intelligence */}
+        <div className="lg:col-span-2 space-y-6">
+           <Card className="rounded-[2.5rem] border-border/50 bg-muted/30 backdrop-blur-sm overflow-hidden p-8 sticky top-52">
+              <div className="relative aspect-square rounded-[2rem] bg-gradient-to-br from-primary/10 via-background to-accent/5 flex items-center justify-center mb-8 shadow-soft border border-border/30">
+                 {/* Visualizer Pulses */}
+                 {isAiTalking && (
+                   <>
+                     <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.1, 0.3] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 border-2 border-primary/20 rounded-[2rem]" />
+                     <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-8 border border-accent/20 rounded-[2rem]" />
+                   </>
+                 )}
+                 <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all ${isAiTalking ? 'bg-primary shadow-glow' : 'bg-muted border border-border'}`}>
+                    <Brain className={`w-16 h-16 ${isAiTalking ? 'text-white' : 'text-muted-foreground'}`} />
+                 </div>
+                 
+                 <div className="absolute bottom-6 flex items-center gap-3">
+                    <Badge className={`px-4 py-1.5 rounded-full capitalize ${isAiTalking ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
+                       {isAiTalking ? (
+                         <span className="flex items-center gap-2"><Volume2 className="h-3 w-3" /> Transmitting...</span>
+                       ) : 'Listening Mode'}
+                    </Badge>
+                 </div>
+              </div>
+
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">
+                    <div className="flex items-center gap-3">
+                       <Activity className="h-4 w-4 text-primary" />
+                       <span className="text-sm font-semibold">Pulse State</span>
+                    </div>
+                    <span className="text-xs font-bold text-primary italic uppercase tracking-widest">{isVoiceConnected ? 'Synchronized' : 'Ready'}</span>
+                 </div>
+                 <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">
+                    <div className="flex items-center gap-3">
+                       <Zap className="h-4 w-4 text-accent" />
+                       <span className="text-sm font-semibold">Contextual Depth</span>
+                    </div>
+                    <span className="text-xs font-bold text-accent italic uppercase tracking-widest">Industry Expert</span>
+                 </div>
+              </div>
+           </Card>
+        </div>
+
+        {/* Right Phase - Human Interaction */}
+        <div className="lg:col-span-3 space-y-8">
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={currentQuestionIndex}
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: -20 }}
+               className="space-y-8"
+             >
+                <div className="space-y-3">
+                   <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-[0.2em] text-[10px]">
+                      <Sparkles className="h-3.5 w-3.5" /> Stage {currentQuestionIndex + 1}
+                   </div>
+                   <h1 className="text-3xl font-bold font-display leading-[1.2]">
+                      {currentQuestion?.question}
+                   </h1>
+                </div>
+
+                <div className="relative group">
+                   <Textarea
+                     placeholder="The stage is yours. Focus on structured reasoning..."
+                     className="min-h-[400px] rounded-[2rem] p-10 text-lg border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed"
+                     value={currentAnswer}
+                     onChange={(e) => setCurrentAnswer(e.target.value)}
+                   />
+                   
+                   <div className="absolute bottom-6 right-8 flex items-center gap-4">
+                      {isVoiceConnected && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                           <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Deepgram Active</span>
+                        </div>
+                      )}
+                      <span className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{currentAnswer.length} Chars</span>
+                   </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                   <Button 
+                    size="lg" 
+                    variant={isVoiceConnected ? 'secondary' : 'outline'}
+                    onClick={connectVoice}
+                    disabled={isVoiceConnecting}
+                    className="h-16 rounded-2xl flex-1 border-border/50 text-base font-bold transition-all hover:shadow-soft"
+                   >
+                     {isVoiceConnecting ? <Loader2 className="animate-spin h-5 w-5" /> : isVoiceConnected ? <MicOff className="h-5 w-5 mr-3 text-emerald-500" /> : <Mic className="h-5 w-5 mr-3" /> }
+                     {isVoiceConnected ? 'Continuous Voice' : 'Activate Voice Bridge'}
+                   </Button>
+                   
+                   {currentQuestionIndex < (session?.questions?.length || 0) - 1 ? (
+                     <Button 
+                      size="lg" 
+                      onClick={handleNextQuestion}
+                      disabled={!currentAnswer.trim()}
+                      className="h-16 rounded-2xl flex-1 gradient-primary shadow-glow text-base font-bold group"
+                     >
+                       Next Evolution <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                     </Button>
+                   ) : (
+                     <Button 
+                      size="lg" 
+                      onClick={() => handleFinishInterview(false)}
+                      disabled={submitting || !currentAnswer.trim()}
+                      className="h-16 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-glow text-base font-bold"
+                     >
+                       {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle2 className="h-5 w-5 mr-3" />}
+                       Finalize Session
+                     </Button>
+                   )}
+                </div>
+             </motion.div>
+           </AnimatePresence>
+        </div>
+
+      </main>
+
+      {/* Persistence Dock */}
+      <footer className="h-20 border-t border-border/30 bg-background flex items-center px-12">
+         <div className="max-w-7xl mx-auto w-full flex items-center gap-12 text-muted-foreground">
+            <div className="flex items-center gap-2">
+               <User className="h-4 w-4" />
+               <span className="text-xs font-bold uppercase tracking-widest">{responses.size} / {session?.questions?.length} Saved</span>
+            </div>
+            <div className="flex items-center gap-2">
+               <Clock className="h-4 w-4" />
+               <span className="text-xs font-bold uppercase tracking-widest">Active {formatTime(totalTimeElapsed)}</span>
+            </div>
+         </div>
+      </footer>
     </div>
   );
 };

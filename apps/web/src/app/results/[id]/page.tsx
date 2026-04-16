@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +27,11 @@ import {
   ChevronRight,
   CheckCircle2,
   AlertCircle,
-  Star,
+  Star as StarIcon,
   Loader2,
+  ArrowUpRight,
+  Activity,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { interviewSessionApi } from "@/lib/api";
@@ -52,59 +55,34 @@ const Results = () => {
       try {
         setLoading(true);
         setError(null);
-        const results = await interviewSessionApi.getResults(
-          interviewId,
-          getToken,
-        );
+        const results = await interviewSessionApi.getResults(interviewId, getToken);
         setData(results);
-        if (results?.interview?.rating) {
-          setRating(results.interview.rating);
-        }
+        if (results?.interview?.rating) setRating(results.interview.rating);
       } catch (err: any) {
-        console.error("Error fetching results:", err);
         setError(err.message || "Failed to load results");
       } finally {
         setLoading(false);
       }
     };
-
-    if (interviewId) {
-      fetchResults();
-    }
+    if (interviewId) fetchResults();
   }, [interviewId, getToken]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 pt-24 pb-12">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground">Loading your results...</p>
-            </div>
-          </div>
-        </main>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse font-medium">Processing Neural Feedback...</p>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 pt-24 pb-12">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-4">
-              <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
-              <h2 className="text-2xl font-bold">Error Loading Results</h2>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={() => router.push("/dashboard")}>
-                Back to Dashboard
-              </Button>
-            </div>
-          </div>
-        </main>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Sync Error</h2>
+        <p className="text-muted-foreground mb-8 text-center max-w-md">{error}</p>
+        <Button size="lg" className="rounded-2xl" onClick={() => router.push("/dashboard")}>Return to Base</Button>
       </div>
     );
   }
@@ -112,370 +90,208 @@ const Results = () => {
   const { interview, results, questions, skillScores } = data;
   const overallScore = results.overallScore;
 
-  // Parse feedback from questions to extract strengths and improvements
-  const questionFeedback = questions.map((q: any, index: number) => {
-    // Try to parse feedback if it's structured
-    let strengths: string[] = [];
-    let improvements: string[] = [];
-
-    if (q.feedback) {
-      // Simple parsing - you can enhance this based on AI output format
-      const feedbackLines = q.feedback
-        .split("\n")
-        .filter((line: string) => line.trim());
-      strengths = feedbackLines.filter(
-        (line: string) =>
-          line.toLowerCase().includes("good") ||
-          line.toLowerCase().includes("strength") ||
-          line.toLowerCase().includes("well"),
-      );
-      improvements = feedbackLines.filter(
-        (line: string) =>
-          line.toLowerCase().includes("improve") ||
-          line.toLowerCase().includes("could") ||
-          line.toLowerCase().includes("consider"),
-      );
-
-      // If no structured feedback, use the whole feedback as strength or improvement based on score
-      if (strengths.length === 0 && improvements.length === 0) {
-        if (q.score && q.score >= 80) {
-          strengths = [q.feedback];
-        } else {
-          improvements = [q.feedback];
-        }
-      }
-    }
-
-    return {
-      question: q.question,
-      score: q.score || 0,
-      strengths: strengths.length > 0 ? strengths : ["Good response"],
-      improvements:
-        improvements.length > 0 ? improvements : ["Keep practicing"],
-      type: (q.score || 0) >= 80 ? "strength" : "improvement",
-    };
-  });
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="container mx-auto px-4 pt-24 pb-12">
-        {/* Header */}
+      <main className="max-w-7xl mx-auto px-6 pt-32 pb-20">
+        {/* Success Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-            className="inline-flex items-center justify-center w-24 h-24 rounded-full gradient-primary shadow-elevated mb-6">
-            <Trophy className="h-12 w-12 text-primary-foreground" />
-          </motion.div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            Interview Complete!
-          </h1>
-          <p className="text-muted-foreground text-lg mb-6">
-            {interview.title} • {interview.duration} minutes
-          </p>
-          <div className="flex justify-center gap-3">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Download Report
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Share2 className="h-4 w-4" /> Share Results
-            </Button>
-          </div>
+           initial={{ opacity: 0, y: 30 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="relative overflow-hidden rounded-[3rem] border border-border/50 bg-muted/30 backdrop-blur-sm p-12 text-center mb-12"
+        >
+           <div className="absolute top-[-20%] left-[50%] -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
+           
+           <div className="relative z-10 space-y-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                className="w-24 h-24 rounded-full gradient-primary shadow-glow flex items-center justify-center mx-auto"
+              >
+                <Trophy className="h-12 w-12 text-white" />
+              </motion.div>
+              
+              <div className="space-y-2">
+                <h1 className="text-4xl md:text-6xl font-bold font-display tracking-tight">Session <span className="text-primary italic">Dossier.</span></h1>
+                <p className="text-xl text-muted-foreground">{interview.title} • Performance Analysis</p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                 <Button variant="outline" className="rounded-2xl h-12 px-6 border-border/50">
+                    <Download className="mr-2 h-4 w-4" /> Export Report
+                 </Button>
+                 <Button variant="outline" className="rounded-2xl h-12 px-6 border-border/50">
+                    <Share2 className="mr-2 h-4 w-4" /> Share Insight
+                 </Button>
+              </div>
+           </div>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Overall Score */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}>
-              <Card className="gradient-card shadow-elevated overflow-hidden">
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="font-display text-2xl font-bold mb-1">
-                        Overall Performance
-                      </h2>
-                      <p className="text-muted-foreground">
-                        {overallScore >= 80
-                          ? "Excellent work!"
-                          : overallScore >= 60
-                            ? "Good job! Keep improving."
-                            : "Keep practicing!"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-display text-5xl font-bold text-gradient">
-                        {overallScore}%
+        <div className="grid lg:grid-cols-3 gap-12">
+          {/* Detailed Feedback List */}
+          <div className="lg:col-span-2 space-y-12">
+             <section className="space-y-6">
+                <h2 className="text-2xl font-bold font-display">Competency Heatmap</h2>
+                <Card className="rounded-[2.5rem] border-border/50 bg-background overflow-hidden shadow-soft">
+                   <CardContent className="p-10">
+                      <div className="grid sm:grid-cols-2 gap-10">
+                         {skillScores.map((skill: any, i: number) => (
+                           <div key={i} className="space-y-4">
+                              <div className="flex justify-between items-end">
+                                 <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Target Skill</p>
+                                    <p className="font-bold">{skill.skillName}</p>
+                                 </div>
+                                 <span className="text-2xl font-bold font-display text-primary">{Math.round(skill.score)}%</span>
+                              </div>
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                 <motion.div 
+                                   initial={{ width: 0 }}
+                                   animate={{ width: `${skill.score}%` }}
+                                   className="h-full gradient-primary"
+                                 />
+                              </div>
+                           </div>
+                         ))}
                       </div>
-                    </div>
-                  </div>
+                      
+                      {results.summary && (
+                        <div className="mt-12 p-8 rounded-3xl bg-muted/20 border border-border/50 italic text-muted-foreground">
+                           "{results.summary}"
+                        </div>
+                      )}
+                   </CardContent>
+                </Card>
+             </section>
 
-                  {/* Skill Scores */}
-                  {skillScores.length > 0 && (
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {skillScores.map((skill: any, index: number) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>{skill.skillName}</span>
-                            <span className="font-medium">
-                              {Math.round(skill.score)}%
-                            </span>
-                          </div>
-                          <Progress value={skill.score} className="h-2" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Summary */}
-                  {results.summary && (
-                    <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                      <h3 className="font-semibold mb-2">Summary</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {results.summary}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Question Feedback */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}>
-              <h2 className="font-display text-xl font-semibold mb-4">
-                Question-by-Question Feedback
-              </h2>
-              <div className="space-y-4">
-                {questionFeedback.map((item: any, index: number) => (
-                  <Card key={index} className="gradient-card shadow-card">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`p-1.5 rounded-lg ${
-                              item.score >= 80
-                                ? "bg-green-500/10"
-                                : "bg-yellow-500/10"
-                            }`}>
-                            {item.score >= 80 ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <AlertCircle className="h-4 w-4 text-yellow-600" />
-                            )}
-                          </div>
-                          <Badge variant="secondary">Q{index + 1}</Badge>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                          <span className="font-semibold">{item.score}%</span>
-                        </div>
-                      </div>
-                      <p className="font-medium mb-3">{item.question}</p>
-                      <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                        <div className="space-y-1">
-                          <div className="font-medium text-green-600 flex items-center gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Strengths
-                          </div>
-                          <ul className="space-y-1 text-muted-foreground">
-                            {item.strengths.map((s: string, i: number) => (
-                              <li key={i}>• {s}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="font-medium text-yellow-600 flex items-center gap-1">
-                            <Lightbulb className="h-3.5 w-3.5" /> Areas to
-                            Improve
-                          </div>
-                          <ul className="space-y-1 text-muted-foreground">
-                            {item.improvements.map((s: string, i: number) => (
-                              <li key={i}>• {s}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </motion.div>
+             <section className="space-y-6">
+                <h2 className="text-2xl font-bold font-display">Phase Feedback</h2>
+                <div className="space-y-6">
+                   {questions.map((q: any, i: number) => (
+                     <Card key={i} className="group rounded-[2rem] border-border/50 bg-background hover:border-primary/30 transition-all overflow-hidden">
+                        <CardContent className="p-8">
+                           <div className="flex items-start justify-between mb-6">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center font-bold text-lg">
+                                    {i + 1}
+                                 </div>
+                                 <p className="font-bold text-lg max-w-md line-clamp-1">{q.question}</p>
+                              </div>
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-xl border border-primary/10">
+                                 <StarIcon className="h-4 w-4 fill-primary text-primary" />
+                                 <span className="font-bold text-primary">{q.score || 0}%</span>
+                              </div>
+                           </div>
+                           
+                           <div className="grid sm:grid-cols-2 gap-8">
+                              <div className="space-y-4">
+                                 <div className="flex items-center gap-2 text-emerald-500 text-[10px] font-bold uppercase tracking-widest">
+                                    <CheckCircle2 className="h-4 w-4" /> Strength Points
+                                 </div>
+                                 <p className="text-sm text-muted-foreground leading-relaxed italic">
+                                    {q.feedback?.split('\n')[0] || "Response structural integrity maintained."}
+                                 </p>
+                              </div>
+                              <div className="space-y-4">
+                                 <div className="flex items-center gap-2 text-primary-base text-[10px] font-bold uppercase tracking-widest">
+                                    <Lightbulb className="h-4 w-4 text-orange-500" /> Focus Point
+                                 </div>
+                                 <p className="text-sm text-muted-foreground leading-relaxed italic">
+                                    {q.feedback?.split('\n')[1] || "Focus on elaborating the 'Action' phase."}
+                                 </p>
+                              </div>
+                           </div>
+                        </CardContent>
+                     </Card>
+                   ))}
+                </div>
+             </section>
           </div>
 
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-4">
-            {/* Stats */}
-            <Card className="gradient-card shadow-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Interview Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    Duration
-                  </div>
-                  <span className="font-medium">{interview.duration} min</span>
+          {/* Performance Sidebar */}
+          <div className="space-y-8">
+             <h2 className="text-2xl font-bold font-display">Performance Score</h2>
+             <Card className="rounded-[2.5rem] gradient-dark border-none shadow-glow p-10 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-10">
+                   <Activity className="h-16 w-16" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MessageSquare className="h-4 w-4" />
-                    Questions
-                  </div>
-                  <span className="font-medium">
-                    {questions.length} answered
-                  </span>
+                <div className="relative z-10 text-center space-y-6">
+                   <div className="text-7xl font-bold font-display tracking-tightest">
+                      {overallScore}<span className="text-3xl text-white/40">%</span>
+                   </div>
+                   <div className="space-y-2">
+                      <p className="font-bold uppercase tracking-widest text-xs opacity-60">Global Rating</p>
+                      <Badge className="bg-white/10 text-white border-white/20 px-6 py-2 rounded-full backdrop-blur-md">
+                        {overallScore >= 80 ? 'Exceptional' : overallScore >= 60 ? 'Competitive' : 'Developing'}
+                      </Badge>
+                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Target className="h-4 w-4" />
-                    Category
-                  </div>
-                  <Badge variant="secondary">{interview.category}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Target className="h-4 w-4" />
-                    Difficulty
-                  </div>
-                  <Badge variant="secondary">{interview.difficulty}</Badge>
-                </div>
+             </Card>
 
-                <div className="pt-2 border-t mt-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Star className="h-4 w-4" />
-                      Rate Interview
-                    </div>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          disabled={isRating}
-                          onMouseEnter={() => setHoverRating(star)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          onClick={async () => {
-                            try {
-                              setIsRating(true);
-
-                              const { interviewApi } =
-                                await import("@/lib/api");
-                              await interviewApi.rateInterview(
-                                interviewId,
-                                star,
-                                getToken,
-                              );
-                              setRating(star);
-                            } catch (err) {
-                              console.error("Failed to rate", err);
-                            } finally {
-                              setIsRating(false);
-                            }
-                          }}
-                          className="focus:outline-none transition-transform hover:scale-110">
-                          <Star
-                            className={`h-5 w-5 ${
-                              (hoverRating || rating) >= star
-                                ? "fill-yellow-500 text-yellow-500"
-                                : "text-muted-foreground hover:text-yellow-400"
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Strengths & Weaknesses */}
-            {(results.strengths.length > 0 ||
-              results.weaknesses.length > 0) && (
-              <Card className="gradient-card shadow-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-500" />
-                    Key Insights
-                  </CardTitle>
+             <Card className="rounded-[2.5rem] border-border/50 bg-muted/20 backdrop-blur-sm p-8">
+                <CardHeader className="p-0 mb-6">
+                   <CardTitle className="text-sm uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" /> Metrics Summary
+                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {results.strengths.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-green-600 mb-2">
-                        Strengths
-                      </h4>
-                      <ul className="space-y-1">
-                        {results.strengths.map(
-                          (strength: string, index: number) => (
-                            <li
-                              key={index}
-                              className="flex items-start gap-2 text-sm">
-                              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                              <span className="text-muted-foreground">
-                                {strength}
-                              </span>
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                    </div>
-                  )}
-                  {results.weaknesses.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-yellow-600 mb-2">
-                        Areas to Improve
-                      </h4>
-                      <ul className="space-y-1">
-                        {results.weaknesses.map(
-                          (weakness: string, index: number) => (
-                            <li
-                              key={index}
-                              className="flex items-start gap-2 text-sm">
-                              <ChevronRight className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-                              <span className="text-muted-foreground">
-                                {weakness}
-                              </span>
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Duration</span>
+                      <span className="font-bold">{interview.duration}m</span>
+                   </div>
+                   <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Analyzed Items</span>
+                      <span className="font-bold">{questions.length} Sessions</span>
+                   </div>
+                   <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Skill Difficulty</span>
+                      <Badge variant="secondary" className="rounded-lg">{interview.difficulty}</Badge>
+                   </div>
+                   
+                   <div className="pt-6 border-t border-border/10 space-y-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Validation Review</p>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            disabled={isRating}
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            onClick={async () => {
+                              try {
+                                setIsRating(true);
+                                const { interviewApi } = await import("@/lib/api");
+                                await interviewApi.rateInterview(interviewId, star, getToken);
+                                setRating(star);
+                              } catch (err) {} finally { setIsRating(false); }
+                            }}
+                          >
+                            <StarIcon className={`h-6 w-6 transition-all ${
+                              (hoverRating || rating) >= star ? 'fill-yellow-500 text-yellow-500 scale-110' : 'text-muted-foreground hover:text-yellow-400'
+                            }`} />
+                          </button>
+                        ))}
+                      </div>
+                   </div>
+                </div>
+             </Card>
 
-            {/* Actions */}
-            <div className="space-y-2">
-              <Link href="/interviews" className="block">
-                <Button variant="outline" className="w-full gap-2">
-                  <RotateCcw className="h-4 w-4" />
-                  Practice Again
-                </Button>
-              </Link>
-              <Link href="/dashboard" className="block">
-                <Button variant="outline" className="w-full">
-                  Back to Dashboard
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
+             <div className="space-y-4">
+                <Link href="/interviews" className="block">
+                  <Button size="lg" className="w-full h-14 rounded-2xl font-bold gradient-primary shadow-soft">
+                    <RotateCcw className="mr-3 h-5 w-5" /> Retake Simulation
+                  </Button>
+                </Link>
+                <Link href="/dashboard" className="block">
+                  <Button variant="outline" size="lg" className="w-full h-14 rounded-2xl font-bold border-border/50">
+                    Exit Dossier
+                  </Button>
+                </Link>
+             </div>
+          </div>
         </div>
       </main>
     </div>
