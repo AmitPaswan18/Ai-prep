@@ -12,9 +12,9 @@
     "dev:turbo": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "db:generate": "PRISMA_CLIENT_ENGINE_TYPE=library pnpm --filter @repo/db run generate",
+    "db:generate": "pnpm --filter @repo/db run generate",
     "db:push": "pnpm --filter @repo/db run push",
-    "postinstall": "PRISMA_CLIENT_ENGINE_TYPE=library pnpm --filter @repo/db run generate"
+    "postinstall": "pnpm --filter @repo/db run generate"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
