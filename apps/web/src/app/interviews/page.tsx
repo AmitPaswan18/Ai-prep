@@ -27,10 +27,22 @@ import {
   Database,
   Briefcase,
   Plus,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { interviewApi } from "@/lib/api";
 import { useAuth } from "@clerk/nextjs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Interviews = () => {
   const router = useRouter();
@@ -40,6 +52,9 @@ const Interviews = () => {
   const [interviews, setInterviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [interviewToDelete, setInterviewToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const categories = [
     { id: "all", label: "Library", icon: Globe },
@@ -76,10 +91,22 @@ const Interviews = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      setIsDeleting(true);
       await interviewApi.deleteInterview(id, getToken);
       setInterviews(prev => prev.filter(i => i.id !== id));
+      toast({
+        title: "Simulation Deconstructed",
+        description: "The interview module has been purged from the library.",
+      });
     } catch (err: any) {
-      alert(err.message || "Failed to delete interview");
+      toast({
+        title: "Deconstruction Failed",
+        description: err.message || "Failed to delete interview",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setInterviewToDelete(null);
     }
   };
 
@@ -203,9 +230,7 @@ const Interviews = () => {
                           size="sm" 
                           onClick={(e) => {
                             e.preventDefault();
-                            if (confirm("Permanently deconstruct this simulation?")) {
-                              handleDelete(interview.id);
-                            }
+                            setInterviewToDelete(interview.id);
                           }}
                           className="w-full h-9 rounded-xl font-bold gap-2 text-destructive hover:bg-destructive/10 text-[10px] uppercase tracking-widest mt-2"
                         >
@@ -219,6 +244,30 @@ const Interviews = () => {
             })}
           </AnimatePresence>
         </div>
+
+        <AlertDialog open={!!interviewToDelete} onOpenChange={(open) => !open && setInterviewToDelete(null)}>
+          <AlertDialogContent className="rounded-[2.5rem] border-border/50 bg-background shadow-elevated p-10 max-w-md">
+            <AlertDialogHeader className="space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mb-2">
+                 <AlertTriangle className="h-8 w-8" />
+              </div>
+              <AlertDialogTitle className="text-2xl font-bold font-display tracking-tight">Deconstruct Module?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground font-medium leading-relaxed">
+                This action is irreversible. The simulation blueprint will be purged from the active library.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-3 mt-8">
+              <AlertDialogCancel className="h-12 rounded-xl px-6 border-border/50 font-bold uppercase text-[10px] tracking-widest">Abort</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => interviewToDelete && handleDelete(interviewToDelete)}
+                disabled={isDeleting}
+                className="h-12 rounded-xl px-6 bg-destructive hover:bg-destructive/90 text-white font-bold uppercase text-[10px] tracking-widest shadow-glow-destructive"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Purge"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {!isLoading && filteredInterviews.length === 0 && (
           <div className="text-center py-32 bg-muted/20 rounded-3xl border border-border/30 border-dashed">

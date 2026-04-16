@@ -102,7 +102,7 @@ router.get("/", async (req, res) => {
 // GET /interview/:id - Get a single interview by ID
 router.get("/:id", async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const interview = await getInterviewById(id);
 
         if (!interview) {
@@ -258,7 +258,7 @@ router.post("/", requireAuth(), async (req, res) => {
 // DELETE /interview/:id - Delete an interview (requires ownership)
 router.delete("/:id", requireAuth(), async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const { userId: clerkUserId } = getAuth(req);
 
         if (!clerkUserId) {
