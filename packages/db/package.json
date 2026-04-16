@@ -17,13 +17,13 @@
   "license": "ISC",
   "packageManager": "pnpm@10.28.1",
   "dependencies": {
-    "@prisma/client": "^7.3.0",
+    "@prisma/client": "7.3.0",
     "pg": "^8.17.1"
   },
   "devDependencies": {
     "@types/pg": "^8.16.0",
     "dotenv": "^17.2.3",
-    "prisma": "^7.3.0",
+    "prisma": "7.3.0",
     "typescript": "^5.0.0"
   }
 }
