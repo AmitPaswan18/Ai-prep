@@ -36,7 +36,11 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
 
             // 1. Get LiveKit Token
             const { token } = await voiceApi.getToken(roomName, getToken);
-            const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://ai-interview-platform-xxxx.livekit.cloud';
+            const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
+            if (!livekitUrl) {
+                throw new Error("LiveKit URL is not configured (NEXT_PUBLIC_LIVEKIT_URL)");
+            }
             
             const room = new Room();
             roomRef.current = room;

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Key, Settings as SettingsIcon } from "lucide-react";
+import { Loader2, Save, Key, Settings as SettingsIcon, Activity } from "lucide-react";
 import { userApi } from "@/lib/api";
 import Navbar from "@/components/layout/Navbar";
 
@@ -66,75 +66,92 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-hero">
+    <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <SettingsIcon className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-display font-bold text-primary-foreground">Settings</h1>
-              <p className="text-primary-foreground/60">Manage your account and API configurations</p>
-            </div>
-          </div>
+      
+      <main className="max-w-4xl mx-auto px-6 pt-32 pb-20">
+        
+        {/* Header Section - High Contrast */}
+        <section className="mb-10">
+           <div className="flex items-center gap-5 mb-3">
+              <div className="p-3 rounded-2xl gradient-primary shadow-glow">
+                 <SettingsIcon className="h-7 w-7 text-white" />
+              </div>
+              <div className="space-y-1">
+                 <h1 className="text-4xl font-bold font-display tracking-tight text-foreground">Settings <span className="text-primary italic font-medium">Hub.</span></h1>
+                 <p className="text-muted-foreground font-medium">Manage your account identity and neural API integration.</p>
+              </div>
+           </div>
+        </section>
 
-          <Card className="bg-card/10 backdrop-blur-xl border-border/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                API Keys
-              </CardTitle>
-              <CardDescription>
-                Configure your external service credentials. These keys are stored securely.
+        <div className="space-y-6">
+          <Card className="rounded-[2rem] border-border/50 bg-background shadow-soft overflow-hidden">
+            <CardHeader className="p-8 pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                 <div className="p-2 rounded-lg bg-primary/10">
+                    <Key className="h-5 w-5 text-primary" />
+                 </div>
+                 <CardTitle className="text-xl font-bold tracking-tight">API Infrastructure</CardTitle>
+              </div>
+              <CardDescription className="text-muted-foreground font-medium pl-10">
+                Configure your external neural engines. These credentials are encrypted and stored in your secure vault.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="elevenlabs">ElevenLabs API Key</Label>
+            <CardContent className="p-8 pt-4 space-y-6">
+              <div className="space-y-3 pl-10">
+                <Label htmlFor="elevenlabs" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">ElevenLabs API Key</Label>
                 <Input
                   id="elevenlabs"
                   type="password"
-                  placeholder="Enter your ElevenLabs API key"
+                  placeholder="vault_pk_..."
                   value={settings.elevenLabsApiKey}
                   onChange={(e) => setSettings({ ...settings, elevenLabsApiKey: e.target.value })}
-                  className="bg-background/50 border-border/20"
+                  className="h-12 rounded-xl border-border/50 bg-muted/20 focus:bg-background transition-all"
                 />
-                <p className="text-xs text-primary-foreground/40">
-                  Required for AI voice output in interviews. Find yours in ElevenLabs dashboard.
+                <p className="text-[10px] font-bold text-primary/70 uppercase tracking-tight">
+                  Neural voice synthesis requires an active ElevenLabs uplink.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card/10 backdrop-blur-xl border-border/20">
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
+          <Card className="rounded-[2rem] border-border/50 bg-background shadow-soft overflow-hidden">
+            <CardHeader className="p-8 pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                 <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <Activity className="h-5 w-5 text-emerald-500" />
+                 </div>
+                 <CardTitle className="text-xl font-bold tracking-tight">Personal Dossier</CardTitle>
+              </div>
+              <CardDescription className="text-muted-foreground font-medium pl-10">Update your public identity within the simulation network.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Display Name</Label>
+            <CardContent className="p-8 pt-4 space-y-6">
+              <div className="space-y-3 pl-10">
+                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Display Name</Label>
                 <Input
                   id="name"
-                  placeholder="Enter your name"
+                  placeholder="Amit Paswan"
                   value={settings.name}
                   onChange={(e) => setSettings({ ...settings, name: e.target.value })}
-                  className="bg-background/50 border-border/20"
+                  className="h-12 rounded-xl border-border/50 bg-muted/20 focus:bg-background transition-all"
                 />
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex justify-end">
-            <Button size="lg" onClick={handleSave} disabled={saving} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Changes
+          <div className="flex justify-end pt-4">
+            <Button 
+                size="lg" 
+                onClick={handleSave} 
+                disabled={saving} 
+                className="h-14 px-10 rounded-2xl font-bold gradient-primary shadow-glow hover:shadow-primary/40 transition-all gap-3"
+            >
+              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+              Synchronize Changes
             </Button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
