@@ -13,6 +13,8 @@ model User {
   email         String   @unique
   name          String?
   elevenLabsApiKey String?
+  resumeText    String?   
+  resumeUpdatedAt DateTime?
   createdAt     DateTime @default(now())
 
   interviews    Interview[]

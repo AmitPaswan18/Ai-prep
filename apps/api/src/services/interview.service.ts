@@ -50,6 +50,18 @@ export async function createInterview(input: CreateInterviewInput) {
 }
 
 export async function getInterviews(filter?: GetInterviewsFilter) {
+    // Check cache for dashboard data (completed interviews)
+    if (filter?.status === 'COMPLETED' && filter?.userId && !filter.search) {
+        try {
+            const { getCachedData } = await import("./redis.service.js");
+            const cacheKey = `user:${filter.userId}:recent_results`;
+            const cached = await getCachedData(cacheKey);
+            if (cached) return cached;
+        } catch (err) {
+            console.warn('Redis Cache Get Failed:', err);
+        }
+    }
+
     const where: any = {};
 
     if (filter?.category) {

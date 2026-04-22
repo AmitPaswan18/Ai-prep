@@ -167,7 +167,7 @@ const InterviewRoomPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <div className="w-24 h-24 rounded-full border-t-2 border-primary animate-spin mb-6" />
-        <p className="text-muted-foreground font-display text-lg animate-pulse">Initializing Neural Bridge...</p>
+        <p className="text-muted-foreground font-display text-lg animate-pulse">Setting up your interview session...</p>
       </div>
     );
   }
@@ -180,9 +180,9 @@ const InterviewRoomPage = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      {/* Top Bar - High Precision Navigation */}
-      <div className="pt-24 px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto py-4 flex items-center justify-between gap-6">
+      {/* Top Bar - Session Status */}
+      <div className="pt-20 px-4 md:px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto py-4 flex items-center justify-between gap-4 md:gap-6">
           <div className="flex items-center gap-4">
              <div className="p-3 bg-muted rounded-2xl border border-border">
                 <Brain className="h-6 w-6 text-primary" />
@@ -226,11 +226,11 @@ const InterviewRoomPage = () => {
       </div>
 
       {/* Main Studio Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12 grid lg:grid-cols-5 gap-12">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
         
         {/* Left Phase - Artificial Intelligence */}
-        <div className="lg:col-span-2 space-y-6">
-           <Card className="rounded-[2.5rem] border-border/50 bg-muted/30 backdrop-blur-sm overflow-hidden p-8 sticky top-52">
+        <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
+           <Card className="rounded-[2rem] md:rounded-[2.5rem] border-border/50 bg-muted/30 backdrop-blur-sm overflow-hidden p-6 md:p-8 lg:sticky lg:top-28">
               <div className="relative aspect-square rounded-[2rem] bg-gradient-to-br from-primary/10 via-background to-accent/5 flex items-center justify-center mb-8 shadow-soft border border-border/30">
                  {/* Visualizer Pulses */}
                  {isAiTalking && (
@@ -246,8 +246,7 @@ const InterviewRoomPage = () => {
                  <div className="absolute bottom-6 flex items-center gap-3">
                     <Badge className={`px-4 py-1.5 rounded-full capitalize ${isAiTalking ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
                        {isAiTalking ? (
-                         <span className="flex items-center gap-2"><Volume2 className="h-3 w-3" /> Transmitting...</span>
-                       ) : 'Listening Mode'}
+                         <span className="flex items-center gap-2"><Volume2 className="h-3 w-3" /> Transmitting...</span>                        ) : 'Ready'}
                     </Badge>
                  </div>
               </div>
@@ -256,23 +255,23 @@ const InterviewRoomPage = () => {
                  <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">
                     <div className="flex items-center gap-3">
                        <Activity className="h-4 w-4 text-primary" />
-                       <span className="text-sm font-semibold">Pulse State</span>
+                       <span className="text-sm font-semibold">Voice Status</span>
                     </div>
-                    <span className="text-xs font-bold text-primary italic uppercase tracking-widest">{isVoiceConnected ? 'Synchronized' : 'Ready'}</span>
+                    <span className="text-xs font-bold text-primary italic uppercase tracking-widest">{isVoiceConnected ? 'Active' : 'Standby'}</span>
                  </div>
                  <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">
                     <div className="flex items-center gap-3">
                        <Zap className="h-4 w-4 text-accent" />
-                       <span className="text-sm font-semibold">Contextual Depth</span>
+                       <span className="text-sm font-semibold">Role Assessment</span>
                     </div>
-                    <span className="text-xs font-bold text-accent italic uppercase tracking-widest">Industry Expert</span>
+                    <span className="text-xs font-bold text-accent italic uppercase tracking-widest">Technical Expert</span>
                  </div>
               </div>
            </Card>
         </div>
 
         {/* Right Phase - Human Interaction */}
-        <div className="lg:col-span-3 space-y-8">
+        <div className="lg:col-span-3 space-y-8 order-1 lg:order-2">
            <AnimatePresence mode="wait">
              <motion.div
                key={currentQuestionIndex}
@@ -283,65 +282,63 @@ const InterviewRoomPage = () => {
              >
                 <div className="space-y-3">
                    <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-[0.2em] text-[10px]">
-                      <Sparkles className="h-3.5 w-3.5" /> Stage {currentQuestionIndex + 1}
+                      <Sparkles className="h-3.5 w-3.5" /> Question {currentQuestionIndex + 1}
                    </div>
-                   <h1 className="text-3xl font-bold font-display leading-[1.2]">
-                      {currentQuestion?.question}
-                   </h1>
+                    <h1 className="text-2xl md:text-3xl font-bold font-display leading-[1.2]">
+                       {currentQuestion?.question}
+                    </h1>
                 </div>
 
-                <div className="relative group">
-                   <Textarea
-                     placeholder="The stage is yours. Focus on structured reasoning..."
-                     className="min-h-[400px] rounded-[2rem] p-10 text-lg border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed"
-                     value={currentAnswer}
-                     onChange={(e) => setCurrentAnswer(e.target.value)}
-                   />
-                   
-                   <div className="absolute bottom-6 right-8 flex items-center gap-4">
-                      {isVoiceConnected && (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                           <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Deepgram Active</span>
-                        </div>
-                      )}
-                      <span className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{currentAnswer.length} Chars</span>
-                   </div>
+                <div className="relative group">                    <Textarea
+                      placeholder="The stage is yours. Focus on structured reasoning..."
+                      className="min-h-[300px] md:min-h-[400px] rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10 text-base md:text-lg border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed"
+                      value={currentAnswer}
+                      onChange={(e) => setCurrentAnswer(e.target.value)}
+                    />
+                    
+                    <div className="absolute bottom-4 md:bottom-6 right-4 md:right-8 flex flex-wrap justify-end items-center gap-3 md:gap-4">
+                       {isVoiceConnected && (
+                         <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full animate-pulse" />
+                            <span className="text-[9px] md:text-[10px] font-bold text-emerald-500 uppercase tracking-widest whitespace-nowrap">Deepgram Active</span>
+                         </div>
+                       )}
+                       <span className="text-[10px] font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{currentAnswer.length} Chars</span>
+                    </div>  
                 </div>
-
-                <div className="flex items-center gap-4">
-                   <Button 
-                    size="lg" 
-                    variant={isVoiceConnected ? 'secondary' : 'outline'}
-                    onClick={connectVoice}
-                    disabled={isVoiceConnecting}
-                    className="h-16 rounded-2xl flex-1 border-border/50 text-base font-bold transition-all hover:shadow-soft"
-                   >
-                     {isVoiceConnecting ? <Loader2 className="animate-spin h-5 w-5" /> : isVoiceConnected ? <MicOff className="h-5 w-5 mr-3 text-emerald-500" /> : <Mic className="h-5 w-5 mr-3" /> }
-                     {isVoiceConnected ? 'Continuous Voice' : 'Activate Voice Bridge'}
-                   </Button>
-                   
-                   {currentQuestionIndex < (session?.questions?.length || 0) - 1 ? (
-                     <Button 
-                      size="lg" 
-                      onClick={handleNextQuestion}
-                      disabled={!currentAnswer.trim()}
-                      className="h-16 rounded-2xl flex-1 gradient-primary shadow-glow text-base font-bold group"
-                     >
-                       Next Evolution <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                     </Button>
-                   ) : (
-                     <Button 
-                      size="lg" 
-                      onClick={() => handleFinishInterview(false)}
-                      disabled={submitting || !currentAnswer.trim()}
-                      className="h-16 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-glow text-base font-bold"
-                     >
-                       {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle2 className="h-5 w-5 mr-3" />}
-                       Finalize Session
-                     </Button>
-                   )}
-                </div>
+                 <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <Button 
+                     size="lg" 
+                     variant={isVoiceConnected ? 'secondary' : 'outline'}
+                     onClick={connectVoice}
+                     disabled={isVoiceConnecting}
+                     className="h-14 md:h-16 rounded-xl md:rounded-2xl w-full sm:flex-1 border-border/50 text-sm md:text-base font-bold transition-all hover:shadow-soft"
+                    >
+                      {isVoiceConnecting ? <Loader2 className="animate-spin h-5 w-5" /> : isVoiceConnected ? <MicOff className="h-5 w-5 mr-3 text-emerald-500" /> : <Mic className="h-5 w-5 mr-3" /> }
+                      {isVoiceConnected ? 'Disconnect Voice' : 'Start Voice Input'}
+                    </Button>
+                    
+                    {currentQuestionIndex < (session?.questions?.length || 0) - 1 ? (
+                      <Button 
+                       size="lg" 
+                       onClick={handleNextQuestion}
+                       disabled={!currentAnswer.trim()}
+                       className="h-14 md:h-16 rounded-xl md:rounded-2xl w-full sm:flex-1 gradient-primary shadow-glow text-sm md:text-base font-bold group"
+                      >
+                        Next Question <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    ) : (
+                      <Button 
+                       size="lg" 
+                       onClick={() => handleFinishInterview(false)}
+                       disabled={submitting || !currentAnswer.trim()}
+                       className="h-14 md:h-16 rounded-xl md:rounded-2xl w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-glow text-sm md:text-base font-bold"
+                      >
+                        {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle2 className="h-5 w-5 mr-3" />}
+                        Finalize Session
+                      </Button>
+                    )}
+                 </div>
              </motion.div>
            </AnimatePresence>
         </div>
@@ -349,15 +346,15 @@ const InterviewRoomPage = () => {
       </main>
 
       {/* Persistence Dock */}
-      <footer className="h-20 border-t border-border/30 bg-background flex items-center px-12">
-         <div className="max-w-7xl mx-auto w-full flex items-center gap-12 text-muted-foreground">
+      <footer className="h-auto py-6 border-t border-border/30 bg-background flex items-center px-4 md:px-12">
+         <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 sm:gap-12 text-muted-foreground">
             <div className="flex items-center gap-2">
                <User className="h-4 w-4" />
-               <span className="text-xs font-bold uppercase tracking-widest">{responses.size} / {session?.questions?.length} Saved</span>
+               <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">{responses.size} / {session?.questions?.length} Saved</span>
             </div>
             <div className="flex items-center gap-2">
                <Clock className="h-4 w-4" />
-               <span className="text-xs font-bold uppercase tracking-widest">Active {formatTime(totalTimeElapsed)}</span>
+               <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Active {formatTime(totalTimeElapsed)}</span>
             </div>
          </div>
       </footer>

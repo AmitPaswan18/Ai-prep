@@ -54,6 +54,7 @@ export interface GenerateQuestionsInput {
     role?: string;
     level?: string;
     questionCount?: number;
+    resumeText?: string;
 }
 
 /**
@@ -71,6 +72,7 @@ export async function generateInterviewQuestions(
         role,
         level,
         questionCount = 10,
+        resumeText,
     } = input;
 
     const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
@@ -84,6 +86,11 @@ Difficulty: ${difficulty}
 ${role ? `Role: ${role}` : ""}
 ${level ? `Level: ${level}` : ""}
 Topics to cover: ${topics.join(", ")}
+
+${resumeText ? `Candidate Resume Context:
+${resumeText}
+
+IMPORTANT: Some questions SHOULD specifically probe the candidate's claims and experiences mentioned in their resume to verify depth and authenticity. Tailor the difficulty based on their stated years of experience and skill proficiency.` : ""}
 
 Requirements:
 1. Generate exactly ${questionCount} questions

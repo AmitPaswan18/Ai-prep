@@ -28,9 +28,11 @@ import {
   Briefcase,
   Plus,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Settings2,
+  Headphones
 } from "lucide-react";
-import { interviewApi } from "@/lib/api";
+import { interviewApi, interviewSessionApi, userApi } from "@/lib/api";
 import { useAuth } from "@clerk/nextjs";
 import {
   AlertDialog,
@@ -43,6 +45,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const Interviews = () => {
   const router = useRouter();
@@ -55,6 +59,15 @@ const Interviews = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [interviewToDelete, setInterviewToDelete] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  const [interviewToStart, setInterviewToStart] = useState<any>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [hasResume, setHasResume] = useState(false);
+  const [startConfig, setStartConfig] = useState({
+    questionCount: 10,
+    difficulty: "INTERMEDIATE",
+    tailorToResume: false
+  });
 
   const categories = [
     { id: "all", label: "Library", icon: Globe },
@@ -83,15 +96,28 @@ const Interviews = () => {
       } catch (err: any) {
         setError(err.message || "Failed to load interviews");
         toast({
-          title: "Synchronization Error",
-          description: err.message || "Failed to fetch simulation blueprints from the neural hub.",
+          title: "Connection Error",
+          description: err.message || "Failed to fetch interview modules.",
           variant: "destructive",
         });
       } finally {
         setIsLoading(false);
       }
     };
+    const fetchResumeStatus = async () => {
+      try {
+        const data = await userApi.getResume(getToken);
+        setHasResume(data.hasResume);
+        if (data.hasResume) {
+          setStartConfig(prev => ({ ...prev, tailorToResume: true }));
+        }
+      } catch (err) {
+        console.error("Resume status error:", err);
+      }
+    };
+
     fetchInterviews();
+    fetchResumeStatus();
   }, [getToken]);
 
   const handleDelete = async (id: string) => {
@@ -100,12 +126,12 @@ const Interviews = () => {
       await interviewApi.deleteInterview(id, getToken);
       setInterviews(prev => prev.filter(i => i.id !== id));
       toast({
-        title: "Simulation Deconstructed",
-        description: "The interview module has been purged from the library.",
+        title: "Module Deleted",
+        description: "The interview module has been removed from your library.",
       });
     } catch (err: any) {
       toast({
-        title: "Deconstruction Failed",
+        title: "Delete Failed",
         description: err.message || "Failed to delete interview",
         variant: "destructive",
       });
@@ -129,7 +155,7 @@ const Interviews = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground animate-pulse font-medium">Synchronizing Lab...</p>
+        <p className="text-muted-foreground animate-pulse font-medium">Loading Interview Library...</p>
       </div>
     );
   }
@@ -142,8 +168,8 @@ const Interviews = () => {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 text-center md:text-left">
           <div className="space-y-1.5">
-            <h1 className="text-4xl font-bold font-display tracking-tight">Interview <span className="text-primary italic font-medium">Lab.</span></h1>
-            <p className="text-muted-foreground text-sm">Select your simulation domain and begin precision training.</p>
+            <h1 className="text-4xl font-bold font-display tracking-tight">Interview <span className="text-primary italic font-medium">Library.</span></h1>
+            <p className="text-muted-foreground text-sm">Select a module and configure your practice session.</p>
           </div>
           <Button 
             size="lg"
@@ -159,7 +185,7 @@ const Interviews = () => {
           <div className="relative w-full lg:max-w-md group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Search simulations..."
+              placeholder="Search interviews..."
               className="pl-11 h-12 rounded-xl border-border/50 bg-muted/20 focus:bg-background focus:shadow-soft transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -223,11 +249,27 @@ const Interviews = () => {
                           {interview.difficulty || 'Intermediate'}
                         </Badge>
                       </div>
-                      <Link href={`/interviews/room/${interview.id}`} className="block">
-                        <Button className="w-full h-11 rounded-xl font-bold gap-2 bg-muted/50 text-foreground border-none group-hover:gradient-primary group-hover:text-white transition-all text-xs">
+                        <Button 
+                          onClick={() => {
+                            setInterviewToStart(interview);
+                            setStartConfig({
+                              questionCount: interview.questionCount || 10,
+                              difficulty: interview.difficulty || "INTERMEDIATE"
+                            });
+                          }}
+                          className="w-full h-11 rounded-xl font-bold gap-2 bg-muted/50 text-foreground border-none group-hover:gradient-primary group-hover:text-white transition-all text-xs"
+                        >
                           Start Session <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
-                      </Link>
+                        
+                        <Link href={`/interviews/podcast/${interview.id}`} className="block">
+                          <Button 
+                            variant="ghost" 
+                            className="w-full h-9 rounded-xl font-bold gap-2 text-primary/70 hover:bg-primary/5 text-[10px] uppercase tracking-widest mt-1"
+                          >
+                            <Headphones className="h-3.5 w-3.5" /> Podcast Mode
+                          </Button>
+                        </Link>
                       
                       {!interview.isTemplate && (
                         <Button 
@@ -239,7 +281,7 @@ const Interviews = () => {
                           }}
                           className="w-full h-9 rounded-xl font-bold gap-2 text-destructive hover:bg-destructive/10 text-[10px] uppercase tracking-widest mt-2"
                         >
-                          <Trash2 className="h-3.5 w-3.5" /> Deconstruct Module
+                          <Trash2 className="h-3.5 w-3.5" /> Delete Module
                         </Button>
                       )}
                     </CardContent>
@@ -251,26 +293,140 @@ const Interviews = () => {
         </div>
 
         <AlertDialog open={!!interviewToDelete} onOpenChange={(open) => !open && setInterviewToDelete(null)}>
-          <AlertDialogContent className="rounded-[2.5rem] border-border/50 bg-background shadow-elevated p-10 max-w-md">
+          <AlertDialogContent className="rounded-[2.5rem] border-border/50 bg-background shadow-elevated p-6 md:p-10 max-w-md">
             <AlertDialogHeader className="space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mb-2">
                  <AlertTriangle className="h-8 w-8" />
               </div>
-              <AlertDialogTitle className="text-2xl font-bold font-display tracking-tight">Deconstruct Module?</AlertDialogTitle>
+              <AlertDialogTitle className="text-2xl font-bold font-display tracking-tight">Delete Module?</AlertDialogTitle>
               <AlertDialogDescription className="text-muted-foreground font-medium leading-relaxed">
-                This action is irreversible. The simulation blueprint will be purged from the active library.
+                This action is irreversible. The module will be removed from your active library.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-3 mt-8">
-              <AlertDialogCancel className="h-12 rounded-xl px-6 border-border/50 font-bold uppercase text-[10px] tracking-widest">Abort</AlertDialogCancel>
+              <AlertDialogCancel className="h-12 rounded-xl px-6 border-border/50 font-bold uppercase text-[10px] tracking-widest">Cancel</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={() => interviewToDelete && handleDelete(interviewToDelete)}
                 disabled={isDeleting}
                 className="h-12 rounded-xl px-6 bg-destructive hover:bg-destructive/90 text-white font-bold uppercase text-[10px] tracking-widest shadow-glow-destructive"
               >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Purge"}
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Delete"}
               </AlertDialogAction>
             </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Start Interview Configuration Dialog */}
+        <AlertDialog open={!!interviewToStart} onOpenChange={(open) => !open && setInterviewToStart(null)}>
+          <AlertDialogContent className="rounded-[2.5rem] border-border/50 bg-background shadow-elevated p-0 max-w-md overflow-hidden">
+            <div className="p-6 md:p-10 pb-0">
+              <AlertDialogHeader className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Settings2 className="h-8 w-8" />
+                  </div>
+                  <Badge variant="outline" className="h-7 px-3 rounded-lg border-primary/20 text-primary bg-primary/5 uppercase text-[10px] font-bold tracking-widest">
+                    Configuration
+                  </Badge>
+                </div>
+                <AlertDialogTitle className="text-3xl font-bold font-display tracking-tight">Practice Settings</AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground font-medium text-sm">
+                  Configure your session with {interviewToStart?.title}.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+            </div>
+
+            <div className="px-10 py-6 max-h-[50vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-widest opacity-70">Questions</Label>
+                  <span className="text-primary font-bold text-lg">{startConfig.questionCount}</span>
+                </div>
+                <Input 
+                  type="range"
+                  min="3"
+                  max="20"
+                  step="1"
+                  value={startConfig.questionCount}
+                  onChange={(e) => setStartConfig(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
+                  className="h-1.5 p-0 bg-muted/50 accent-primary cursor-pointer"
+                />
+                <div className="flex justify-between text-[9px] font-bold text-muted-foreground/60 uppercase tracking-tighter">
+                  <span>3 MIN</span>
+                  <span>20 MAX</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-xs font-bold uppercase tracking-widest opacity-70">Difficulty</Label>
+                <RadioGroup 
+                  value={startConfig.difficulty} 
+                  onValueChange={(val) => setStartConfig(prev => ({ ...prev, difficulty: val }))}
+                  className="grid grid-cols-3 gap-3"
+                >
+                  {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map((level) => (
+                    <div key={level}>
+                      <RadioGroupItem value={level} id={level} className="peer sr-only" />
+                      <Label
+                        htmlFor={level}
+                        className="flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 cursor-pointer transition-all"
+                      >
+                        <span className="text-[9px] font-bold tracking-widest uppercase">{level.slice(0, 3)}</span>
+                        <span className="text-[8px] text-muted-foreground mt-0.5 lowercase italic">
+                          {level === 'BEGINNER' ? '5m/q' : level === 'INTERMEDIATE' ? '3m/q' : '2m/q'}
+                        </span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {hasResume && (
+                <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+                   <div className="space-y-0.5">
+                      <Label htmlFor="resume-tailor" className="text-xs font-bold flex items-center gap-2">
+                         <Sparkles className="h-3 w-3 text-primary" /> Personalized
+                      </Label>
+                      <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest leading-none">Tailor to resume</p>
+                   </div>
+                   <input 
+                      id="resume-tailor"
+                      type="checkbox"
+                      checked={startConfig.tailorToResume}
+                      onChange={(e) => setStartConfig(prev => ({ ...prev, tailorToResume: e.target.checked }))}
+                      className="w-8 h-4 rounded-full appearance-none bg-muted checked:bg-primary relative transition-all cursor-pointer before:content-[''] before:absolute before:w-3 before:h-3 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
+                   />
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 md:p-10 pt-4">
+              <AlertDialogFooter className="gap-3">
+                <AlertDialogCancel className="h-12 rounded-xl px-6 border-border/50 font-bold uppercase text-[10px] tracking-widest">Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={async () => {
+                    try {
+                      setIsStarting(true);
+                      await interviewSessionApi.startSession(interviewToStart.id, startConfig, getToken);
+                      router.push(`/interviews/room/${interviewToStart.id}`);
+                    } catch (error: any) {
+                      toast({
+                        title: "Start Failed",
+                        description: error.message || "Failed to initialize session.",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setIsStarting(false);
+                      setInterviewToStart(null);
+                    }
+                  }}
+                  disabled={isStarting}
+                  className="h-12 rounded-xl px-6 gradient-primary text-white font-bold uppercase text-[10px] tracking-widest shadow-glow flex-1"
+                >
+                  {isStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start Practice"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </div>
           </AlertDialogContent>
         </AlertDialog>
 

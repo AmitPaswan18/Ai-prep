@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 import { interviewApi } from "@/lib/api";
 import { useUser, useAuth } from "@clerk/nextjs";
+import { ResumeUpload } from "@/components/profile/ResumeUpload";
 
 const Dashboard = () => {
   const { user } = useUser();
@@ -65,14 +66,14 @@ const Dashboard = () => {
     { label: "Completion Rate", value: totalCompleted, icon: Target, suffix: "", color: "bg-blue-500" },
     { label: "Focus Time", value: totalHours.toFixed(1), icon: Clock, suffix: "h", color: "bg-purple-500" },
     { label: "Performance", value: averageScore, icon: TrendingUp, suffix: "%", color: "bg-emerald-500" },
-    { label: "Day Streak", value: "4", icon: Flame, suffix: "", color: "bg-orange-500" },
+    { label: "Active Days", value: "4", icon: Flame, suffix: "", color: "bg-orange-500" },
   ];
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground animate-pulse font-medium">Synchronizing Profile...</p>
+        <p className="text-muted-foreground animate-pulse font-medium">Loading Assessment Data...</p>
       </div>
     );
   }
@@ -102,7 +103,7 @@ const Dashboard = () => {
                 Welcome, <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">{user?.firstName || "Candidate"}</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-xl">
-                You're in the top 15% of candidates this week. One more session to hit your daily goal!
+                Unlock your career potential with AI-driven interview simulations. Practice, analyze, and excel.
               </p>
               <div className="flex flex-wrap justify-center md:justify-start gap-4">
                 <Link href="/interviews">
@@ -191,6 +192,7 @@ const Dashboard = () => {
 
           {/* Sidebar Area */}
           <div className="space-y-8">
+            <ResumeUpload />
             <h2 className="text-2xl font-bold font-display">Recent Activity</h2>
             <Card className="rounded-[2.5rem] border-border/50 bg-muted/20 backdrop-blur-sm overflow-hidden">
               <CardContent className="p-2">

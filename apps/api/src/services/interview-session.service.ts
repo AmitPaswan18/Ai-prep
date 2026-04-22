@@ -9,14 +9,50 @@ import {
 /**
  * Start an interview session - generates questions and updates status
  */
-export async function startInterviewSession(interviewId: string, userId: string) {
+export async function startInterviewSession(
+    interviewId: string, 
+    userId: string,
+    options?: { questionCount?: number; difficulty?: any; tailorToResume?: boolean }
+) {
     // Get the interview details
-    const interview = await prisma.interview.findUnique({
+    let interview = await prisma.interview.findUnique({
         where: { id: interviewId },
     });
 
     if (!interview) {
         throw new Error("Interview not found");
+    }
+
+    // Get user details for resume context
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { resumeText: true }
+    });
+
+    // Apply custom options if provided
+    if (options && (options.questionCount || options.difficulty)) {
+        const difficulty = options.difficulty || interview.difficulty;
+        const qCount = options.questionCount || interview.questionCount;
+        
+        // Level decides minutes per question
+        // BEGINNER: 5, INTERMEDIATE: 3, ADVANCED: 2
+        let minsPerQuestion = 3;
+        if (difficulty === 'BEGINNER') minsPerQuestion = 5;
+        if (difficulty === 'ADVANCED') minsPerQuestion = 2;
+        
+        interview = await prisma.interview.update({
+            where: { id: interviewId },
+            data: {
+                questionCount: qCount,
+                difficulty: difficulty,
+                duration: qCount * minsPerQuestion
+            }
+        });
+
+        // Clear existing questions if we are overriding settings
+        await prisma.interviewQuestion.deleteMany({
+            where: { interviewId }
+        });
     }
 
     // Check if questions already exist
@@ -40,6 +76,7 @@ export async function startInterviewSession(interviewId: string, userId: string)
             role: interview.role || undefined,
             level: interview.level || undefined,
             questionCount: interview.questionCount || 10,
+            resumeText: options?.tailorToResume ? user?.resumeText || undefined : undefined,
         });
 
         // Store questions in database
@@ -179,6 +216,27 @@ export async function submitInterviewSession(
             completions: { increment: 1 },
         },
     });
+
+    // Caching results for quick dashboard access
+    try {
+        const { cacheData } = await import("./redis.service.js");
+        const cacheKey = `user:${interview.userId}:recent_results`;
+        
+        // Fetch recent 5 completed interviews for this user to update cache
+        const recentCompleted = await prisma.interview.findMany({
+            where: { 
+                userId: interview.userId,
+                status: InterviewStatus.COMPLETED
+            },
+            include: { results: true, skillScores: true },
+            orderBy: { updatedAt: 'desc' },
+            take: 5
+        });
+
+        await cacheData(cacheKey, recentCompleted, 3600);
+    } catch (redisErr) {
+        console.error('Redis Caching failed:', redisErr);
+    }
 
     return {
         result,

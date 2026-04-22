@@ -213,10 +213,10 @@ export interface InterviewAnalysis {
 
 export const interviewSessionApi = {
     // Start an interview session (generates questions)
-    async startSession(interviewId: string, getToken?: () => Promise<string | null>): Promise<InterviewSession> {
+    async startSession(interviewId: string, options?: { questionCount?: number, difficulty?: string, tailorToResume?: boolean }, getToken?: () => Promise<string | null>): Promise<InterviewSession> {
         const response = await authFetch(`${API_BASE_URL}/interview-session/start/${interviewId}`, {
             method: 'POST',
-            body: JSON.stringify({}),
+            body: JSON.stringify(options || {}),
         }, getToken);
 
         if (!response.ok) {
@@ -344,6 +344,53 @@ export const userApi = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to update settings');
+        }
+        return response.json();
+    },
+
+    // Get resume status
+    async getResume(getToken?: () => Promise<string | null>): Promise<{
+        hasResume: boolean;
+        updatedAt: string | null;
+        snippet: string | null;
+    }> {
+        const response = await authFetch(`${API_BASE_URL}/user/resume`, {}, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch resume status');
+        }
+        const result = await response.json();
+        return result.data;
+    },
+
+    // Upload resume
+    async uploadResume(file: File, getToken?: () => Promise<string | null>): Promise<any> {
+        const token = await getToken?.();
+        const formData = new FormData();
+        formData.append('resume', file);
+
+        const response = await fetch(`${API_BASE_URL}/user/resume`, {
+            method: 'POST',
+            body: formData,
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to upload resume');
+        }
+        return response.json();
+    },
+
+    // Delete resume
+    async deleteResume(getToken?: () => Promise<string | null>): Promise<any> {
+        const response = await authFetch(`${API_BASE_URL}/user/resume`, {
+            method: 'DELETE',
+        }, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete resume');
         }
         return response.json();
     }

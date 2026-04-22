@@ -141,10 +141,10 @@ const Analytics = () => {
   }, [getToken]);
 
   const stats = [
-    { label: "Precision Rate", value: `${Math.round(skillRadarData.reduce((acc, s) => acc + s.score, 0) / (skillRadarData.length || 1))}%`, icon: Target, trend: "+4.2%", color: "text-primary" },
-    { label: "Lab Completions", value: completedInterviews.length, icon: BrainCircuit, trend: "Stable", color: "text-emerald-500" },
-    { label: "Deep Training", value: `${completedInterviews.reduce((acc, i) => acc + (i.duration || 0), 0)}m`, icon: Timer, trend: "+12m", color: "text-amber-500" },
-    { label: "Global Ranking", value: "Top 8%", icon: Trophy, trend: "Rising", color: "text-indigo-500" },
+    { label: "Overall Score", value: `${Math.round(skillRadarData.reduce((acc, s) => acc + s.score, 0) / (skillRadarData.length || 1))}%`, icon: Target, trend: "+4.2%", color: "text-primary" },
+    { label: "Sessions Done", value: completedInterviews.length, icon: BrainCircuit, trend: "Stable", color: "text-emerald-500" },
+    { label: "Total Practice", value: `${completedInterviews.reduce((acc, i) => acc + (i.duration || 0), 0)}m`, icon: Timer, trend: "+12m", color: "text-amber-500" },
+    { label: "Comparative Rank", value: "Top 8%", icon: Trophy, trend: "Rising", color: "text-indigo-500" },
   ];
 
   const weakestAreas = skillRadarData
@@ -160,7 +160,7 @@ const Analytics = () => {
   const learningPlan = weakestAreas.map((area, index) => ({
     id: `plan-${index}`,
     topic: `${area.skill} Optimization`,
-    reason: `System diagnostic indicates ${area.score}% accuracy. Priority elevation required for tier-1 roles.`,
+    reason: `Recent assessments indicate ${area.score}% accuracy. Focused practice recommended to reach senior standards.`,
     priority: area.score < 65 ? "critical" : "strategic",
     suggestedTime: "45-60m",
     icon: area.score < 65 ? AlertTriangle : ShieldCheck
@@ -170,7 +170,7 @@ const Analytics = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground animate-pulse font-medium">Synchronizing Intelligence...</p>
+        <p className="text-muted-foreground animate-pulse font-medium">Preparing Analytics...</p>
       </div>
     );
   }
@@ -184,11 +184,11 @@ const Analytics = () => {
               <Zap className="h-12 w-12 text-muted-foreground/30" />
            </div>
            <div className="space-y-3">
-              <h2 className="text-4xl font-bold font-display tracking-tight">Intelligence <span className="text-primary italic">Gap.</span></h2>
-              <p className="text-muted-foreground text-lg leading-relaxed">Your performance dossier is currently empty. Complete a simulation to initialize your neural map.</p>
+              <h2 className="text-4xl font-bold font-display tracking-tight">Performance <span className="text-primary italic">Gap.</span></h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">You haven't completed any interviews yet. Start one to see your performance metrics.</p>
            </div>
            <Link href="/interviews" className="block pt-4">
-              <Button size="lg" className="w-full h-14 rounded-2xl font-bold gradient-primary shadow-glow text-lg">Initialize Simulation</Button>
+              <Button size="lg" className="w-full h-14 rounded-2xl font-bold gradient-primary shadow-glow text-lg">Start First Interview</Button>
            </Link>
         </div>
       </div>
@@ -205,8 +205,8 @@ const Analytics = () => {
         <section className="mb-12">
            <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-10 text-center md:text-left">
               <div className="space-y-1.5">
-                 <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tightest">Skill <span className="text-primary italic">Intelligence.</span></h1>
-                 <p className="text-muted-foreground">Strategic performance mapping and recursive learning diagnostics.</p>
+                 <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tightest">Skill <span className="text-primary italic">Analytics.</span></h1>
+                 <p className="text-muted-foreground">Comprehensive performance tracking and skill diagnostic reports.</p>
               </div>
               <div className="flex items-center gap-2 p-1 bg-muted/30 rounded-xl border border-border/50">
                  <Button variant="ghost" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] uppercase tracking-widest bg-background shadow-soft">6 Months</Button>
@@ -240,9 +240,9 @@ const Analytics = () => {
                <div className="flex items-center justify-between mb-8 relative z-10">
                   <div className="space-y-1">
                      <h3 className="text-lg font-bold font-display flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-primary" /> Multi-Domain Accuracy
+                        <Activity className="h-4 w-4 text-primary" /> Skill Distribution
                      </h3>
-                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Neural competency spectrum</p>
+                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Your performance across different competency areas</p>
                   </div>
                   <Badge variant="outline" className="rounded-lg border-border/50 text-[9px] font-bold uppercase tracking-widest px-3 py-0.5 bg-muted/20">Real-time Engine</Badge>
                </div>
@@ -310,8 +310,8 @@ const Analytics = () => {
            {/* Strategic Roadmap */}
            <div className="lg:col-span-2 space-y-6">
               <div className="space-y-1">
-                 <h2 className="text-2xl font-bold font-display">Diagnostic Roadmap</h2>
-                 <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Recursive growth instructions</p>
+                 <h2 className="text-2xl font-bold font-display">Improvement Roadmap</h2>
+                 <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Personalized recommendations for growth</p>
               </div>
               <div className="space-y-3">
                  {learningPlan.map((plan, i) => (
@@ -338,7 +338,7 @@ const Analytics = () => {
                  ))}
                  {learningPlan.length === 0 && (
                     <div className="p-8 rounded-2xl border border-dashed border-border/50 text-center italic text-muted-foreground text-xs">
-                       Insufficient session data to generate diagnostic roadmap.
+                       Insufficient session data to generate roadmap.
                     </div>
                  )}
               </div>
@@ -378,10 +378,10 @@ const Analytics = () => {
                  <div className="relative z-10 space-y-4">
                     <div className="flex items-center gap-2">
                        <ShieldCheck className="h-5 w-5" />
-                       <span className="font-bold uppercase tracking-widest text-[10px]">Strategic Target</span>
+                       <span className="font-bold uppercase tracking-widest text-[10px]">Next Step</span>
                     </div>
                     <div>
-                       <h3 className="text-xl font-bold leading-tight mb-2">Refine {weakestAreas[0]?.skill || 'Core'} Vector</h3>
+                       <h3 className="text-xl font-bold leading-tight mb-2">Strengthen {weakestAreas[0]?.skill || 'Core'} Skills</h3>
                        <p className="text-white/80 text-xs leading-relaxed">Intelligence analysis identifies this domain as the #1 growth multiplier for your next career tier.</p>
                     </div>
                     <Link href="/interviews" className="block pt-2">

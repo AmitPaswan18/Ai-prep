@@ -119,11 +119,12 @@ const Results = () => {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-4">
-                 <Button variant="outline" className="rounded-2xl h-12 px-6 border-border/50">
+                 <Button 
+                   variant="outline" 
+                   className="rounded-2xl h-12 px-6 border-border/50 hover:bg-primary/5 hover:text-primary transition-all"
+                   onClick={() => window.print()}
+                 >
                     <Download className="mr-2 h-4 w-4" /> Export Report
-                 </Button>
-                 <Button variant="outline" className="rounded-2xl h-12 px-6 border-border/50">
-                    <Share2 className="mr-2 h-4 w-4" /> Share Insight
                  </Button>
               </div>
            </div>

@@ -70,7 +70,12 @@ router.post("/start/:interviewId", requireAuth(), async (req, res) => {
             });
         }
 
-        const session = await startInterviewSession(interviewId, user.id);
+        const { questionCount, difficulty } = req.body;
+
+        const session = await startInterviewSession(interviewId, user.id, {
+            questionCount: questionCount ? parseInt(questionCount) : undefined,
+            difficulty,
+        });
 
         res.json({
             success: true,
