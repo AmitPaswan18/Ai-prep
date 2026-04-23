@@ -82,7 +82,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-6 pt-32 pb-20">
+      <main className="max-w-7xl mx-auto px-6 pt-24 pb-20">
         {/* Hero Welcome Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
@@ -232,7 +232,7 @@ const Dashboard = () => {
 
             {/* Growth Card */}
             {totalCompleted > 0 && (
-              <Card className="rounded-[2.5rem] bg-gradient-dark border-none shadow-glow p-8 text-white relative overflow-hidden">
+              <Card className="rounded-[2.5rem] gradient-dark bg-slate-950 border-none shadow-glow p-8 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-20">
                   <TrendingUp className="h-12 w-12" />
                 </div>

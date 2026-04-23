@@ -220,11 +220,11 @@ const Results = () => {
                 </div>
                 <div className="relative z-10 text-center space-y-6">
                    <div className="text-7xl font-bold font-display tracking-tightest">
-                      {overallScore}<span className="text-3xl text-white/40">%</span>
+                      {Math.round(overallScore || 0)}<span className="text-3xl text-white/40">%</span>
                    </div>
                    <div className="space-y-2">
-                      <p className="font-bold uppercase tracking-widest text-xs opacity-60">Global Rating</p>
-                      <Badge className="bg-white/10 text-white border-white/20 px-6 py-2 rounded-full backdrop-blur-md">
+                      <p className="font-bold uppercase tracking-widest text-[10px] opacity-60">Global Performance</p>
+                      <Badge className="bg-white/20 text-white border-white/30 px-6 py-2 rounded-full backdrop-blur-md border shadow-lg">
                         {overallScore >= 80 ? 'Exceptional' : overallScore >= 60 ? 'Competitive' : 'Developing'}
                       </Badge>
                    </div>

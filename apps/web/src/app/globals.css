@@ -395,6 +395,10 @@ h6 {
   background: var(--gradient-hero);
 }
 
+.gradient-dark {
+  background: var(--gradient-dark);
+}
+
 .gradient-card {
   background: var(--gradient-card);
 }

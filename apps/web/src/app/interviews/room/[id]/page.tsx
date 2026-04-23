@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import {
   interviewSessionApi,
+  userApi,
   type InterviewSession,
   type InterviewResponse,
 } from "@/lib/api";
@@ -66,6 +68,8 @@ const InterviewRoomPage = () => {
       isAiTalking
   } = useVoice(interviewId, getToken);
 
+  const [isElevenLabsConfigured, setIsElevenLabsConfigured] = useState<boolean | null>(null);
+
   useEffect(() => {
     if (liveTranscript) {
       setCurrentAnswer(liveTranscript);
@@ -73,18 +77,32 @@ const InterviewRoomPage = () => {
   }, [liveTranscript]);
 
   useEffect(() => {
-    if (session?.questions?.[currentQuestionIndex]) {
+    if (session?.questions?.[currentQuestionIndex] && isElevenLabsConfigured) {
       speak(session.questions[currentQuestionIndex].question);
     }
-  }, [currentQuestionIndex, session, speak]);
+  }, [currentQuestionIndex, session, speak, isElevenLabsConfigured]);
 
   useEffect(() => {
     const loadSession = async () => {
       try {
         setLoading(true);
+        
+        // Check ElevenLabs configuration
+        const settings = await userApi.getSettings(getToken);
+        setIsElevenLabsConfigured(settings.isElevenLabsConfigured);
+
         let sessionData = await interviewSessionApi.getSession(interviewId, getToken);
-        if (!sessionData.questions || sessionData.questions.length === 0) {
-          sessionData = await interviewSessionApi.startSession(interviewId, getToken);
+        
+        // If the session returned is not owned by the user (it's a template or belongs to someone else), 
+        // startSession will clone it. We should then redirect to the new ID.
+        if (!sessionData.questions || sessionData.questions.length === 0 || sessionData.interview.isTemplate) {
+          console.log("[Room] Starting fresh session (cloning if needed)");
+          const newSession = await interviewSessionApi.startSession(interviewId, getToken);
+          if (newSession.interview.id !== interviewId) {
+            router.replace(`/interviews/room/${newSession.interview.id}`);
+            return;
+          }
+          sessionData = newSession;
         }
         setSession(sessionData);
         setQuestionStartTime(Date.now());
@@ -181,11 +199,11 @@ const InterviewRoomPage = () => {
       <Navbar />
 
       {/* Top Bar - Session Status */}
-      <div className="pt-20 px-4 md:px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto py-4 flex items-center justify-between gap-4 md:gap-6">
+      <div className="pt-14 px-4 md:px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto py-2 flex items-center justify-between gap-4 md:gap-6">
           <div className="flex items-center gap-4">
-             <div className="p-3 bg-muted rounded-2xl border border-border">
-                <Brain className="h-6 w-6 text-primary" />
+             <div className="p-2 bg-muted rounded-xl border border-border">
+                <Brain className="h-5 w-5 text-primary" />
              </div>
              <div className="hidden sm:block">
                 <h2 className="font-bold tracking-tight">{session?.interview?.title}</h2>
@@ -250,6 +268,18 @@ const InterviewRoomPage = () => {
                     </Badge>
                  </div>
               </div>
+
+              {isElevenLabsConfigured === false && (
+                <div className="mb-6 p-4 rounded-2xl bg-destructive/5 border border-destructive/20 space-y-2">
+                   <div className="flex items-center gap-2 text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Voice Disabled</span>
+                   </div>
+                   <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                      AI voice is disabled because no ElevenLabs API key was found. <Link href="/dashboard/settings" className="text-primary hover:underline">Add key in settings</Link> to enable audio.
+                   </p>
+                </div>
+              )}
 
               <div className="space-y-4">
                  <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">

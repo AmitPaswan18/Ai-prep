@@ -68,6 +68,7 @@ const Interviews = () => {
     difficulty: "INTERMEDIATE",
     tailorToResume: false
   });
+  const [isElevenLabsConfigured, setIsElevenLabsConfigured] = useState<boolean | null>(null);
 
   const categories = [
     { id: "all", label: "Library", icon: Globe },
@@ -116,8 +117,18 @@ const Interviews = () => {
       }
     };
 
+    const fetchSettings = async () => {
+      try {
+        const settings = await userApi.getSettings(getToken);
+        setIsElevenLabsConfigured(settings.isElevenLabsConfigured);
+      } catch (err) {
+        console.error("Settings fetch error:", err);
+      }
+    };
+
     fetchInterviews();
     fetchResumeStatus();
+    fetchSettings();
   }, [getToken]);
 
   const handleDelete = async (id: string) => {
@@ -164,7 +175,7 @@ const Interviews = () => {
     <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-6 pt-32 pb-20">
+      <main className="max-w-7xl mx-auto px-6 pt-24 pb-20">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 text-center md:text-left">
           <div className="space-y-1.5">
@@ -262,14 +273,30 @@ const Interviews = () => {
                           Start Session <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
                         
-                        <Link href={`/interviews/podcast/${interview.id}`} className="block">
+                        {isElevenLabsConfigured === false ? (
                           <Button 
                             variant="ghost" 
-                            className="w-full h-9 rounded-xl font-bold gap-2 text-primary/70 hover:bg-primary/5 text-[10px] uppercase tracking-widest mt-1"
+                            onClick={() => {
+                              toast({
+                                title: "ElevenLabs Required",
+                                description: "Podcast mode requires an ElevenLabs API key. Please configure it in Settings.",
+                                variant: "destructive"
+                              });
+                            }}
+                            className="w-full h-9 rounded-xl font-bold gap-2 text-muted-foreground/40 hover:bg-destructive/5 text-[10px] uppercase tracking-widest mt-1"
                           >
-                            <Headphones className="h-3.5 w-3.5" /> Podcast Mode
+                            <AlertTriangle className="h-3.5 w-3.5" /> Podcast Locked
                           </Button>
-                        </Link>
+                        ) : (
+                          <Link href={`/interviews/podcast/${interview.id}`} className="block">
+                            <Button 
+                              variant="ghost" 
+                              className="w-full h-9 rounded-xl font-bold gap-2 text-primary/70 hover:bg-primary/5 text-[10px] uppercase tracking-widest mt-1"
+                            >
+                              <Headphones className="h-3.5 w-3.5" /> Podcast Mode
+                            </Button>
+                          </Link>
+                        )}
                       
                       {!interview.isTemplate && (
                         <Button 
@@ -407,8 +434,8 @@ const Interviews = () => {
                   onClick={async () => {
                     try {
                       setIsStarting(true);
-                      await interviewSessionApi.startSession(interviewToStart.id, startConfig, getToken);
-                      router.push(`/interviews/room/${interviewToStart.id}`);
+                      const session = await interviewSessionApi.startSession(interviewToStart.id, startConfig, getToken);
+                      router.push(`/interviews/room/${session.interview.id}`);
                     } catch (error: any) {
                       toast({
                         title: "Start Failed",

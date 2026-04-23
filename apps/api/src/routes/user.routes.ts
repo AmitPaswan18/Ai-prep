@@ -25,7 +25,15 @@ router.get("/settings", requireAuth(), async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        res.json({ success: true, data: user });
+        const isElevenLabsConfigured = !!(user.elevenLabsApiKey || process.env.ELEVENLABS_API_KEY);
+
+        res.json({ 
+            success: true, 
+            data: { 
+                ...user,
+                isElevenLabsConfigured 
+            } 
+        });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

@@ -21,6 +21,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { 
     interviewSessionApi, 
+    userApi,
     type InterviewSession, 
     type InterviewResponse 
 } from "@/lib/api";
@@ -43,6 +44,7 @@ const PodcastInterviewPage = () => {
     const [questionStartTime, setQuestionStartTime] = useState(Date.now());
     const [isAutoTransitioning, setIsAutoTransitioning] = useState(false);
     const [stage, setStage] = useState<'IDLE' | 'LISTENING' | 'TALKING' | 'PROCESSING'>('IDLE');
+    const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
 
     const {
         connect: connectVoice,
@@ -55,24 +57,6 @@ const PodcastInterviewPage = () => {
         isAiTalking
     } = useVoice(interviewId, getToken);
 
-    // Sync transcript
-    useEffect(() => {
-        if (liveTranscript) {
-            const lowerTranscript = liveTranscript.toLowerCase();
-            setCurrentAnswer(liveTranscript);
-
-            // Hands-free Voice Commands
-            if (lowerTranscript.includes("next question") || lowerTranscript.includes("proceed")) {
-                if (liveTranscript.length > 20) { // Avoid accidental triggers
-                    handleNext();
-                }
-            }
-            if (lowerTranscript.includes("finish interview") || lowerTranscript.includes("i'm done")) {
-                handleFinish();
-            }
-        }
-    }, [liveTranscript]);
-
     // Handle Stage transitions
     useEffect(() => {
         if (isAiTalking) {
@@ -84,14 +68,92 @@ const PodcastInterviewPage = () => {
         }
     }, [isAiTalking, isVoiceConnected]);
 
-    // Load session
+    // 1. Define helper functions first (hoisting fix)
+    const handlePlayQuestion = useCallback((index: number, sessionData: InterviewSession | null) => {
+        const q = sessionData?.questions?.[index];
+        if (q) {
+            speak(q.question);
+        }
+    }, [speak]);
+
+    const saveCurrentResponse = useCallback(() => {
+        const currentQ = session?.questions?.[currentQuestionIndex];
+        if (!currentQ) return;
+        const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+        const response: InterviewResponse = {
+            questionId: currentQ.id,
+            question: currentQ.question,
+            answer: currentAnswer,
+            timeSpent,
+        };
+        setResponses(prev => new Map(prev.set(currentQ.id, response)));
+    }, [session, currentQuestionIndex, questionStartTime, currentAnswer]);
+
+    const handleFinish = useCallback(async () => {
+        try {
+            setSubmitting(true);
+            saveCurrentResponse();
+            const responsesArray = Array.from(responses.values());
+            await interviewSessionApi.submitSession(interviewId, responsesArray, getToken);
+            speak("Interview complete. Your results are ready.");
+            setTimeout(() => {
+                router.push(`/results/${interviewId}`);
+            }, 3000);
+        } catch (err: any) {
+            toast({
+                title: "Sync Failed",
+                description: "Recording saved locally. Redirecting to results...",
+                variant: "destructive"
+            });
+            router.push(`/results/${interviewId}`);
+        } finally {
+            setSubmitting(false);
+        }
+    }, [saveCurrentResponse, responses, interviewId, getToken, speak, router, toast]);
+
+    const handleNext = useCallback(async () => {
+        if (isAutoTransitioning) return;
+        
+        setIsAutoTransitioning(true);
+        saveCurrentResponse();
+        setCurrentAnswer("");
+        setTranscript("");
+        
+        if (session && currentQuestionIndex < session.questions.length - 1) {
+            const nextIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(nextIndex);
+            setQuestionStartTime(Date.now());
+            handlePlayQuestion(nextIndex, session);
+        } else {
+            // End of interview
+            await handleFinish();
+        }
+        setIsAutoTransitioning(false);
+    }, [isAutoTransitioning, saveCurrentResponse, session, currentQuestionIndex, handlePlayQuestion, handleFinish, setTranscript]);
+
+    // 2. Load session and check configuration
     useEffect(() => {
         const loadSession = async () => {
             try {
                 setLoading(true);
+                
+                // Check ElevenLabs configuration FIRST
+                const settings = await userApi.getSettings(getToken);
+                if (!settings.isElevenLabsConfigured) {
+                    setIsConfigured(false);
+                    setLoading(false);
+                    return;
+                }
+                setIsConfigured(true);
+
                 let sessionData = await interviewSessionApi.getSession(interviewId, getToken);
-                if (!sessionData.questions || sessionData.questions.length === 0) {
-                    sessionData = await interviewSessionApi.startSession(interviewId, getToken);
+                if (!sessionData.questions || sessionData.questions.length === 0 || sessionData.interview.isTemplate) {
+                    const newSession = await interviewSessionApi.startSession(interviewId, getToken);
+                    if (newSession.interview.id !== interviewId) {
+                        router.replace(`/interviews/podcast/${newSession.interview.id}`);
+                        return;
+                    }
+                    sessionData = newSession;
                 }
                 setSession(sessionData);
                 
@@ -114,69 +176,58 @@ const PodcastInterviewPage = () => {
             }
         };
         if (interviewId) loadSession();
-    }, [interviewId, getToken]);
+    }, [interviewId, getToken, toast, speak, handlePlayQuestion, router]);
 
-    const handlePlayQuestion = useCallback((index: number, sessionData: InterviewSession | null) => {
-        const q = sessionData?.questions?.[index];
-        if (q) {
-            speak(q.question);
+    // 3. Sync transcript
+    useEffect(() => {
+        if (liveTranscript) {
+            const lowerTranscript = liveTranscript.toLowerCase();
+            setCurrentAnswer(liveTranscript);
+
+            // Hands-free Voice Commands
+            if (lowerTranscript.includes("next question") || lowerTranscript.includes("proceed")) {
+                if (liveTranscript.length > 20) { // Avoid accidental triggers
+                    handleNext();
+                }
+            }
+            if (lowerTranscript.includes("finish interview") || lowerTranscript.includes("i'm done")) {
+                handleFinish();
+            }
         }
-    }, [speak]);
+    }, [liveTranscript, handleNext, handleFinish]);
 
-    const saveCurrentResponse = () => {
-        const currentQ = session?.questions?.[currentQuestionIndex];
-        if (!currentQ) return;
-        const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-        const response: InterviewResponse = {
-            questionId: currentQ.id,
-            question: currentQ.question,
-            answer: currentAnswer,
-            timeSpent,
-        };
-        setResponses(prev => new Map(prev.set(currentQ.id, response)));
-    };
-
-    const handleNext = async () => {
-        if (isAutoTransitioning) return;
-        
-        setIsAutoTransitioning(true);
-        saveCurrentResponse();
-        setCurrentAnswer("");
-        setTranscript("");
-        
-        if (session && currentQuestionIndex < session.questions.length - 1) {
-            const nextIndex = currentQuestionIndex + 1;
-            setCurrentQuestionIndex(nextIndex);
-            setQuestionStartTime(Date.now());
-            handlePlayQuestion(nextIndex, session);
-        } else {
-            // End of interview
-            await handleFinish();
-        }
-        setIsAutoTransitioning(false);
-    };
-
-    const handleFinish = async () => {
-        try {
-            setSubmitting(true);
-            saveCurrentResponse();
-            const responsesArray = Array.from(responses.values());
-            await interviewSessionApi.submitSession(interviewId, responsesArray, getToken);
-            speak("Interview complete. Your results are ready.");
-            setTimeout(() => {
-                router.push(`/results/${interviewId}`);
-            }, 3000);
-        } catch (err: any) {
-            toast({
-                title: "Sync Failed",
-                description: "Recording saved locally. Redirecting to results...",
-                variant: "destructive"
-            });
-            router.push(`/results/${interviewId}`);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+    if (isConfigured === false) {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center space-y-8">
+                <div className="relative">
+                    <div className="w-24 h-24 rounded-full bg-destructive/10 flex items-center justify-center">
+                        <Zap className="h-10 w-10 text-destructive" />
+                    </div>
+                </div>
+                <div className="space-y-4 max-w-md">
+                    <h2 className="text-2xl font-bold text-white uppercase tracking-tighter">API Key Required</h2>
+                    <p className="text-white/60 text-sm leading-relaxed">
+                        To use the Podcast Mode voice features, you need to provide an ElevenLabs API key in your account settings.
+                    </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
+                    <Button 
+                        onClick={() => router.push('/dashboard/settings')}
+                        className="flex-1 bg-white text-black hover:bg-white/90 font-bold uppercase tracking-wider text-xs h-12"
+                    >
+                        Go to Settings
+                    </Button>
+                    <Button 
+                        variant="outline"
+                        onClick={() => router.push('/interviews')}
+                        className="flex-1 border-white/20 text-white hover:bg-white/5 font-bold uppercase tracking-wider text-xs h-12"
+                    >
+                        Go Back
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -194,7 +245,7 @@ const PodcastInterviewPage = () => {
         <div className="h-[100dvh] bg-black text-white flex flex-col touch-none overflow-hidden select-none relative">
             
             {/* Minimal Header */}
-            <header className="p-8 flex items-center justify-between z-50">
+            <header className="p-4 flex items-center justify-between z-50">
                 <Button 
                     variant="ghost" 
                     size="icon" 

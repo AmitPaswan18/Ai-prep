@@ -15,12 +15,45 @@ export async function startInterviewSession(
     options?: { questionCount?: number; difficulty?: any; tailorToResume?: boolean }
 ) {
     // Get the interview details
-    let interview = await prisma.interview.findUnique({
+    const originalInterview = await prisma.interview.findUnique({
         where: { id: interviewId },
+        include: { questions: { take: 1 } } // Check if it has questions
     });
 
-    if (!interview) {
+    if (!originalInterview) {
         throw new Error("Interview not found");
+    }
+
+    let targetInterviewId = interviewId;
+
+    // If starting from a template or another user's interview, CLONE it
+    if (originalInterview.isTemplate || originalInterview.userId !== userId) {
+        console.log(`[Session] Cloning interview ${interviewId} for user ${userId}`);
+        const clonedInterview = await prisma.interview.create({
+            data: {
+                userId,
+                title: originalInterview.title,
+                description: originalInterview.description,
+                category: originalInterview.category,
+                difficulty: originalInterview.difficulty,
+                duration: originalInterview.duration,
+                questionCount: originalInterview.questionCount,
+                topics: originalInterview.topics,
+                icon: originalInterview.icon,
+                color: originalInterview.color,
+                role: originalInterview.role,
+                level: originalInterview.level,
+                isTemplate: false, // Clones are never templates
+                status: InterviewStatus.IN_PROGRESS,
+            }
+        });
+        targetInterviewId = clonedInterview.id;
+    } else {
+        // Just update status for user's own interview
+        await prisma.interview.update({
+            where: { id: interviewId },
+            data: { status: InterviewStatus.IN_PROGRESS },
+        });
     }
 
     // Get user details for resume context
@@ -29,19 +62,24 @@ export async function startInterviewSession(
         select: { resumeText: true }
     });
 
+    // Fetch the target interview (either cloned or original)
+    let interview = await prisma.interview.findUnique({
+        where: { id: targetInterviewId },
+    });
+
+    if (!interview) throw new Error("Target interview not found after cloning");
+
     // Apply custom options if provided
     if (options && (options.questionCount || options.difficulty)) {
         const difficulty = options.difficulty || interview.difficulty;
         const qCount = options.questionCount || interview.questionCount;
         
-        // Level decides minutes per question
-        // BEGINNER: 5, INTERMEDIATE: 3, ADVANCED: 2
         let minsPerQuestion = 3;
         if (difficulty === 'BEGINNER') minsPerQuestion = 5;
         if (difficulty === 'ADVANCED') minsPerQuestion = 2;
         
         interview = await prisma.interview.update({
-            where: { id: interviewId },
+            where: { id: targetInterviewId },
             data: {
                 questionCount: qCount,
                 difficulty: difficulty,
@@ -51,22 +89,22 @@ export async function startInterviewSession(
 
         // Clear existing questions if we are overriding settings
         await prisma.interviewQuestion.deleteMany({
-            where: { interviewId }
+            where: { interviewId: targetInterviewId }
         });
     }
 
-    // Check if questions already exist
+    // Check if questions already exist for the TARGET interview
     const existingQuestions = await prisma.interviewQuestion.findMany({
-        where: { interviewId },
+        where: { interviewId: targetInterviewId },
     });
 
     let questions;
 
     if (existingQuestions.length > 0) {
-        // Use existing questions
         questions = existingQuestions;
     } else {
-        // Generate new questions using AI
+        // If it was a clone and original had questions, we could copy them, 
+        // but it's better to generate fresh ones tailored to the new settings/resume.
         const aiQuestions = await generateInterviewQuestions({
             title: interview.title,
             description: interview.description || undefined,
@@ -79,24 +117,17 @@ export async function startInterviewSession(
             resumeText: options?.tailorToResume ? user?.resumeText || undefined : undefined,
         });
 
-        // Store questions in database
         questions = await Promise.all(
             aiQuestions.map((q: AiInterviewQuestion) =>
                 prisma.interviewQuestion.create({
                     data: {
-                        interviewId,
+                        interviewId: targetInterviewId,
                         question: q.question,
                     },
                 })
             )
         );
     }
-
-    // Update interview status to IN_PROGRESS
-    await prisma.interview.update({
-        where: { id: interviewId },
-        data: { status: InterviewStatus.IN_PROGRESS },
-    });
 
     return {
         interview,

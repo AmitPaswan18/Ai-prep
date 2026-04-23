@@ -325,6 +325,7 @@ export const userApi = {
         elevenLabsApiKey: string | null;
         email: string;
         name: string | null;
+        isElevenLabsConfigured: boolean;
     }> {
         const response = await authFetch(`${API_BASE_URL}/user/settings`, {}, getToken);
         if (!response.ok) {
