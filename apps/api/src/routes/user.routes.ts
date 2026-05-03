@@ -74,7 +74,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post("/resume", requireAuth(), upload.single("resume"), async (req, res) => {
     try {
         const { userId: clerkUserId } = getAuth(req);
-        const file = req.file;
+        const file = (req as any).file;
 
         if (!file) {
             return res.status(400).json({ error: "No file uploaded" });
