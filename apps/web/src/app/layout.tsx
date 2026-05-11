@@ -35,7 +35,7 @@ export default async function RootLayout({
   domain?: string;
 }>) {
   return (
-    <ClerkProvider proxyUrl={process.env.NEXT_PUBLIC_CLERK_DOMAIN}
+    <ClerkProvider
     publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
