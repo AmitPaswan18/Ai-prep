@@ -32,6 +32,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
+  domain?: string;
 }>) {
   return (
     <ClerkProvider proxyUrl={process.env.NEXT_PUBLIC_CLERK_DOMAIN}
