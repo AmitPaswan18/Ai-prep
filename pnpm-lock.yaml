@@ -59,9 +59,9 @@ importers:
       multer:
         specifier: ^2.1.1
         version: 2.1.1
-      pdf-parse:
-        specifier: 1.1.1
-        version: 1.1.1
+      pdf-parse-fork:
+        specifier: ^1.1.1
+        version: 1.2.0
     devDependencies:
       '@types/cors':
         specifier: ^2.8.19
@@ -3975,8 +3975,8 @@ packages:
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
 
-  pdf-parse@1.1.1:
-    resolution: {integrity: sha512-v6ZJ/efsBpGrGGknjtq9J/oC8tZWq0KWL5vQrk2GlzLEQPUDB1ex+13Rmidl1neNN358Jn9EHZw5y07FFtaC7A==}
+  pdf-parse-fork@1.2.0:
+    resolution: {integrity: sha512-ovXkJaTtw8PfLNhBThKHKsZlT6WrCkVKY/QgsDK5GiD/tuL2qzezSlHpEgqHCnq3r/0GOq3NZ+won78KL/dAjQ==}
     engines: {node: '>=6.8.1'}
 
   perfect-debounce@1.0.0:
@@ -8917,9 +8917,9 @@ snapshots:
 
   pathe@2.0.3: {}
 
-  pdf-parse@1.1.1:
+  pdf-parse-fork@1.2.0:
     dependencies:
-      debug: 3.2.7
+      debug: 4.4.3(supports-color@5.5.0)
       node-ensure: 0.0.0
     transitivePeerDependencies:
       - supports-color

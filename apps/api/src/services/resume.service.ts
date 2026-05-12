@@ -1,5 +1,5 @@
 // @ts-ignore
-import pdf from 'pdf-parse';
+import pdf from 'pdf-parse-fork';
 import mammoth from 'mammoth';
 
 export async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
