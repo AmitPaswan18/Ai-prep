@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -179,18 +180,13 @@ const Analytics = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <Navbar />
-        <div className="max-w-md w-full text-center space-y-8">
-           <div className="w-24 h-24 rounded-[2.5rem] bg-muted/30 mx-auto flex items-center justify-center border border-border/50 shadow-soft">
-              <Zap className="h-12 w-12 text-muted-foreground/30" />
-           </div>
-           <div className="space-y-3">
-              <h2 className="text-4xl font-bold font-display tracking-tight">Performance <span className="text-primary italic">Gap.</span></h2>
-              <p className="text-muted-foreground text-lg leading-relaxed">You haven't completed any interviews yet. Start one to see your performance metrics.</p>
-           </div>
-           <Link href="/interviews" className="block pt-4">
-              <Button size="lg" className="w-full h-14 rounded-2xl font-bold gradient-primary shadow-glow text-lg">Start First Interview</Button>
-           </Link>
-        </div>
+        <EmptyState 
+          icon={Zap}
+          title="Performance Gap"
+          description="You haven't completed any interviews yet. Start one to see your performance metrics and skill diagnostic reports."
+          actionLabel="Start First Interview"
+          onAction={() => router.push("/interviews")}
+        />
       </div>
     );
   }

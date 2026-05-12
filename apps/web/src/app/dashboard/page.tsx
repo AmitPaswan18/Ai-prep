@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -217,15 +218,12 @@ const Dashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-12 text-center space-y-6">
-                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                      <Activity className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="font-bold">No Data Points</p>
-                      <p className="text-sm text-muted-foreground">Your performance metrics will appear here after your first session.</p>
-                    </div>
-                  </div>
+                  <EmptyState 
+                    icon={Activity}
+                    title="No Data Points"
+                    description="Your performance metrics will appear here after your first session. Practice a session to begin."
+                    className="p-8 border-none bg-transparent shadow-none"
+                  />
                 )}
               </CardContent>
             </Card>

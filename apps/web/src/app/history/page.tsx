@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -211,14 +212,13 @@ const History = () => {
                </motion.div>
              ))
            ) : (
-             <Card className="rounded-[2.5rem] border-border/50 bg-muted/20 border-dashed p-20 text-center space-y-4">
-                <SearchCode className="h-12 w-12 mx-auto text-muted-foreground/30" />
-                <div className="space-y-1">
-                   <p className="font-bold text-xl">Empty Archive</p>
-                   <p className="text-muted-foreground max-w-xs mx-auto text-sm">No interviews found for the current filter criteria.</p>
-                </div>
-                <Button onClick={() => {setSearchQuery(""); setTypeFilter("all"); setScoreFilter("all");}} className="rounded-xl">Clear All Filters</Button>
-             </Card>
+              <EmptyState 
+                icon={SearchCode}
+                title="Empty Archive"
+                description="No interviews found for the current filter criteria. Try adjusting your search parameters."
+                actionLabel="Clear All Filters"
+                onAction={() => {setSearchQuery(""); setTypeFilter("all"); setScoreFilter("all");}}
+              />
            )}
         </div>
 

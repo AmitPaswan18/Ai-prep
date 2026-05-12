@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -458,13 +459,12 @@ const Interviews = () => {
         </AlertDialog>
 
         {!isLoading && filteredInterviews.length === 0 && (
-          <div className="text-center py-32 bg-muted/20 rounded-3xl border border-border/30 border-dashed">
-             <div className="w-16 h-16 bg-background rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-soft border border-border/50">
-                <Search className="h-8 w-8 text-muted-foreground/40" />
-             </div>
-             <p className="text-2xl font-bold mb-2">No modules found</p>
-             <p className="text-muted-foreground">Try adjusting your keyword or category selection.</p>
-          </div>
+          <EmptyState 
+            icon={Search}
+            title="No modules found"
+            description="Try adjusting your keyword or category selection to find what you're looking for."
+            className="mt-10"
+          />
         )}
       </main>
     </div>
