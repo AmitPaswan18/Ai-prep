@@ -1,16 +1,3 @@
-// Polyfill for PDF.js in Node.js environment
-// Modern pdfjs-dist (v4+) expects these browser globals to exist.
-// Even for text extraction, it checks for their presence.
-if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
-  (global as any).DOMMatrix = class DOMMatrix { };
-}
-if (typeof global !== 'undefined' && !(global as any).ImageData) {
-  (global as any).ImageData = class ImageData { };
-}
-if (typeof global !== 'undefined' && !(global as any).Path2D) {
-  (global as any).Path2D = class Path2D { };
-}
-
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
