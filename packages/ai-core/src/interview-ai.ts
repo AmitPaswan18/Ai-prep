@@ -77,7 +77,8 @@ export async function generateInterviewQuestions(
 
     const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    const prompt = `You are an expert technical interviewer. Generate ${questionCount} interview questions for the following interview:
+    const prompt = `You are an expert technical interviewer. Generate ${questionCount} interview questions for the following interview.
+IMPORTANT: The questions you generate must be standard, highly-asked, and realistic questions commonly encountered in actual top-tier industry interviews for this role (such as frequently tested concepts, core architectural patterns, common coding challenges, or critical behavioral/situational questions):
 
 Title: ${title}
 ${description ? `Description: ${description}` : ""}
@@ -97,9 +98,10 @@ Requirements:
 2. Questions should progressively increase in difficulty
 3. Cover all mentioned topics appropriately
 4. Questions should be practical and relevant to real-world scenarios
-5. For technical interviews, include coding, system design, or problem-solving questions
-6. For behavioral interviews, use the STAR method framework
+5. For technical interviews, include coding, system design, or problem-solving questions that are highly typical and popular in technical screens
+6. For behavioral interviews, use the STAR method framework focusing on core soft skill competencies
 7. Each question should assess specific skills or knowledge areas
+8. Prioritize high-yield, frequently asked interview questions that directly evaluate core competencies in the selected topics and role
 
 Return the response in the following JSON format:
 {
@@ -133,6 +135,42 @@ Only return valid JSON, no additional text.`;
         throw new Error("Failed to generate interview questions");
     }
 }
+
+/**
+ * Extract skills and tech stack from resume text using Gemini AI
+ */
+export async function extractResumeSkills(resumeText: string): Promise<string[]> {
+    try {
+        const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+        const prompt = `You are a professional resume parser. Extract a list of the key technical skills, tools, frameworks, and programming languages from the following resume text.
+Only extract actual technical skills, tools, programming languages, and databases (e.g. "React", "TypeScript", "Node.js", "PostgreSQL", "Docker", "AWS", "Python"). Do not include soft skills.
+Return ONLY a list of strings in JSON format. Do not write any markdown code fences, headers, or explanations. Just return the JSON object:
+
+{
+  "skills": ["Skill1", "Skill2", "Framework1", "Tool1"]
+}
+
+Resume text:
+${resumeText}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error("Invalid JSON response from AI");
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        return parsed.skills || [];
+    } catch (error) {
+        console.error("Error extracting resume skills:", error);
+        return [];
+    }
+}
+
 
 /**
  * Analyze interview responses using OpenAI or Gemini AI

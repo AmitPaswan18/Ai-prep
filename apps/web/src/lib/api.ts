@@ -422,6 +422,17 @@ export const userApi = {
             throw new Error(error.error || 'Failed to delete resume');
         }
         return response.json();
+    },
+
+    // Get resume skills
+    async getResumeSkills(getToken?: () => Promise<string | null>): Promise<{ skills: string[] }> {
+        const response = await authFetch(`${API_BASE_URL}/user/resume/skills`, {}, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch resume skills');
+        }
+        const result = await response.json();
+        return result.data;
     }
 };
 

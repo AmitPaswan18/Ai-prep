@@ -74,7 +74,7 @@ export default function AuthPage() {
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
         </div>
 
-        <motion.div 
+        <motion.div
           style={{ opacity, scale }}
           className="container mx-auto relative z-10"
         >
@@ -96,7 +96,7 @@ export default function AuthPage() {
               transition={{ delay: 0.1, duration: 0.8 }}
               className="font-display text-5xl md:text-8xl font-bold tracking-tight mb-8 leading-[1.1]"
             >
-              Master the Art of the 
+              Master the Art of the
               <span className="block italic font-medium bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-accent">
                 Perfect Interview
               </span>
@@ -168,7 +168,7 @@ export default function AuthPage() {
               <p className="text-xl text-muted-foreground mb-8">We've built a system that goes deeper than simple flashcards. We analyze the psychology behind your answers.</p>
               <Button variant="secondary" className="rounded-xl">Read our Whitepaper</Button>
             </div>
-            
+
             <div className="lg:w-2/3 grid sm:grid-cols-2 gap-6">
               {features.map((feature, i) => (
                 <Card key={i} className="group overflow-hidden rounded-3xl border-border/50 bg-muted/30 backdrop-blur-sm hover:border-primary/30 transition-all hover:shadow-elevated">
@@ -191,12 +191,12 @@ export default function AuthPage() {
         <div className="container mx-auto px-6 text-center">
           <p className="text-sm uppercase tracking-widest text-muted-foreground mb-12">Empowering talent at global leaders</p>
           <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
-             {/* Use your generate_image tool if you wanted actual logos, but stylized text for now is premium too */}
-             <span className="text-2xl font-bold font-display opacity-80">GOOGLE</span>
-             <span className="text-2xl font-bold font-display opacity-80">META</span>
-             <span className="text-2xl font-bold font-display opacity-80">STRIPE</span>
-             <span className="text-2xl font-bold font-display opacity-80">NETFLIX</span>
-             <span className="text-2xl font-bold font-display opacity-80">OPENAI</span>
+            {/* Use your generate_image tool if you wanted actual logos, but stylized text for now is premium too */}
+            <span className="text-2xl font-bold font-display opacity-80">GOOGLE</span>
+            <span className="text-2xl font-bold font-display opacity-80">META</span>
+            <span className="text-2xl font-bold font-display opacity-80">STRIPE</span>
+            <span className="text-2xl font-bold font-display opacity-80">NETFLIX</span>
+            <span className="text-2xl font-bold font-display opacity-80">OPENAI</span>
           </div>
         </div>
       </section>
@@ -207,11 +207,11 @@ export default function AuthPage() {
           <Card className="relative overflow-hidden rounded-[3rem] border-none shadow-elevated">
             <div className="absolute inset-0 gradient-primary opacity-90" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
-            
+
             <CardContent className="relative z-10 p-12 md:p-24 text-center">
               <h2 className="text-4xl md:text-6xl font-bold text-white mb-8">Your next career milestone starts here.</h2>
               <p className="text-xl text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed">Join 10,000+ candidates who used InterviewAI to secure offers at Fortune 500 companies this year.</p>
-              
+
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <SignedIn>
                   <Link href="/dashboard">
@@ -228,7 +228,7 @@ export default function AuthPage() {
                   </SignUpButton>
                 </SignedOut>
               </div>
-              
+
               <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-white/60 text-sm font-medium">
                 <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-white" /> 10 Free Tokens</span>
                 <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-white" /> Live AI Interviews</span>
@@ -254,7 +254,7 @@ export default function AuthPage() {
                 Pioneering the intersection of psychology and generative AI to create the most realistic interview training experience available.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
               <div className="flex flex-col gap-4">
                 <span className="font-bold text-sm uppercase tracking-widest">Platform</span>
@@ -276,7 +276,7 @@ export default function AuthPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-border/30 text-xs text-muted-foreground">
             <div className="flex items-center gap-6">
               <span>Made with ❤️ for candidates everywhere.</span>

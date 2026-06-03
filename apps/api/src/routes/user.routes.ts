@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth, getAuth } from "@clerk/express";
 import { prisma } from "@repo/db";
+import { extractResumeSkills } from "@ai-platform/ai-core";
 
 const router = Router();
 
@@ -138,6 +139,43 @@ router.get("/resume", requireAuth(), async (req, res) => {
             } 
         });
     } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * GET /user/resume/skills
+ * Get extracted skills and tech stack from user's resume
+ */
+router.get("/resume/skills", requireAuth(), async (req, res) => {
+    try {
+        const { userId: clerkUserId } = getAuth(req);
+        
+        const user = await prisma.user.findUnique({
+            where: { clerkUserId: clerkUserId! },
+            select: {
+                resumeText: true
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        if (!user.resumeText) {
+            return res.json({ 
+                success: true, 
+                data: { skills: [] }
+            });
+        }
+
+        const skills = await extractResumeSkills(user.resumeText);
+        res.json({ 
+            success: true, 
+            data: { skills }
+        });
+    } catch (error: any) {
+        console.error("Error fetching/extracting resume skills:", error);
         res.status(500).json({ error: error.message });
     }
 });

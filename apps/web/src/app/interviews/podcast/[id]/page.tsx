@@ -525,8 +525,8 @@ const PodcastInterviewPage = () => {
 
                     {/* Background radial gradient */}
                     <div className={`absolute inset-0 transition-all duration-1000 ${stage === "TALKING" ? "bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.08)_0%,transparent_70%)]"
-                            : stage === "LISTENING" ? "bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.07)_0%,transparent_70%)]"
-                                : "bg-transparent"
+                        : stage === "LISTENING" ? "bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.07)_0%,transparent_70%)]"
+                            : "bg-transparent"
                         }`} />
 
                     {/* Ambient glow blob */}
@@ -571,10 +571,10 @@ const PodcastInterviewPage = () => {
                         disabled={isVoiceConnecting || submitting}
                         onClick={() => { if (!isVoiceConnected) connectVoice(); }}
                         className={`relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center gap-3 transition-all duration-500 border-2 overflow-hidden ${stage === "TALKING"
-                                ? "bg-primary/20 border-primary/70 shadow-[0_0_60px_rgba(139,92,246,0.4)]"
-                                : stage === "LISTENING"
-                                    ? "bg-emerald-500/15 border-emerald-500/60 shadow-[0_0_60px_rgba(16,185,129,0.3)]"
-                                    : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20"
+                            ? "bg-primary/20 border-primary/70 shadow-[0_0_60px_rgba(139,92,246,0.4)]"
+                            : stage === "LISTENING"
+                                ? "bg-emerald-500/15 border-emerald-500/60 shadow-[0_0_60px_rgba(16,185,129,0.3)]"
+                                : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20"
                             }`}
                     >
                         {isVoiceConnecting ? (
@@ -587,8 +587,8 @@ const PodcastInterviewPage = () => {
                             <Headphones className="h-12 w-12 text-white/30" />
                         )}
                         <span className={`text-[9px] font-bold uppercase tracking-[0.25em] ${stage === "TALKING" ? "text-primary/80"
-                                : stage === "LISTENING" ? "text-emerald-400/80"
-                                    : "text-white/30"
+                            : stage === "LISTENING" ? "text-emerald-400/80"
+                                : "text-white/30"
                             }`}>
                             {statusText}
                         </span>
@@ -598,12 +598,12 @@ const PodcastInterviewPage = () => {
                     <div className="relative z-10 mt-8 flex flex-col items-center gap-3">
                         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
                             <span className={`w-2 h-2 rounded-full ${stage === "LISTENING" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"
-                                    : stage === "TALKING" ? "bg-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.8)]"
-                                        : "bg-white/15"
+                                : stage === "TALKING" ? "bg-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.8)]"
+                                    : "bg-white/15"
                                 }`} />
                             <span className={`${stage === "LISTENING" ? "text-emerald-400/70"
-                                    : stage === "TALKING" ? "text-primary/70"
-                                        : "text-white/20"
+                                : stage === "TALKING" ? "text-primary/70"
+                                    : "text-white/20"
                                 }`}>
                                 {stage === "LISTENING" ? "Microphone Active"
                                     : stage === "TALKING" ? "AI Responding"
