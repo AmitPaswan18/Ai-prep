@@ -1,15 +1,14 @@
-// @ts-ignore
-import pdf from 'pdf-parse-fork';
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
     if (mimetype === 'application/pdf') {
+        const parser = new PDFParse({ data: buffer });
         try {
-            const data = await pdf(buffer);
-            return data.text;
-        } catch (error: any) {
-            console.error('Error parsing PDF:', error);
-            throw new Error('Failed to parse PDF resume.');
+            const result = await parser.getText();
+            return result.text;
+        } finally {
+            await parser.destroy();
         }
     } else if (
         mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||

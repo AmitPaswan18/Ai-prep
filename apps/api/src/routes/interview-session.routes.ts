@@ -62,14 +62,6 @@ router.post("/start/:interviewId", requireAuth(), async (req, res) => {
             });
         }
 
-        const ownership = await verifyInterviewOwnership(interviewId, user.id);
-        if (!ownership.valid) {
-            return res.status(ownership.status!).json({
-                success: false,
-                error: ownership.error,
-            });
-        }
-
         const { questionCount, difficulty } = req.body;
 
         const session = await startInterviewSession(interviewId, user.id, {

@@ -62,6 +62,7 @@ router.patch("/settings", requireAuth(), async (req, res) => {
     }
 });
 
+// @ts-ignore
 import multer from "multer";
 import { parseResume } from "../services/resume.service.js";
 

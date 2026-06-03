@@ -12,20 +12,53 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
     const roomRef = useRef<Room | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const localTrackRef = useRef<any>(null);
+    const isAiTalkingRef = useRef(false);
+    const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+    const micStreamRef = useRef<MediaStream | null>(null);
+    // Monotonic speak-call counter — lets us cancel stale speak() calls
+    const speakVersionRef = useRef(0);
+
+    useEffect(() => {
+        isAiTalkingRef.current = isAiTalking;
+        // Toggle dedicated-mic stream enabled state so Deepgram ignores AI audio
+        if (micStreamRef.current) {
+            micStreamRef.current.getAudioTracks().forEach(t => {
+                t.enabled = !isAiTalking;
+            });
+        }
+    }, [isAiTalking]);
 
     const disconnect = useCallback(() => {
-        if (roomRef.current) {
-            roomRef.current.disconnect();
-            roomRef.current = null;
+        if (currentAudioRef.current) {
+            try {
+                currentAudioRef.current.pause();
+                currentAudioRef.current.src = '';
+            } catch (_) { }
+            currentAudioRef.current = null;
+        }
+        if (mediaRecorderRef.current) {
+            try { mediaRecorderRef.current.stop(); } catch (_) { }
+            mediaRecorderRef.current = null;
+        }
+        if (micStreamRef.current) {
+            try { micStreamRef.current.getTracks().forEach(t => t.stop()); } catch (_) { }
+            micStreamRef.current = null;
         }
         if (socketRef.current) {
             socketRef.current.close();
             socketRef.current = null;
         }
-        if (mediaRecorderRef.current) {
-            mediaRecorderRef.current.stop();
-            mediaRecorderRef.current = null;
+        if (localTrackRef.current) {
+            try { localTrackRef.current.stop(); } catch (_) { }
+            localTrackRef.current = null;
         }
+        if (roomRef.current) {
+            roomRef.current.disconnect();
+            roomRef.current = null;
+        }
+        speakVersionRef.current += 1; // cancel any in-flight speak
+        setIsAiTalking(false);
         setIsConnected(false);
     }, []);
 
@@ -33,97 +66,160 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
         try {
             setIsConnecting(true);
             disconnect();
+            setError(null);
 
-            // 1. Get LiveKit Token
-            const { token } = await voiceApi.getToken(roomName, getToken);
-            const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-
-            if (!livekitUrl) {
-                throw new Error("LiveKit URL is not configured (NEXT_PUBLIC_LIVEKIT_URL)");
+            // 1. LiveKit (Optional connection - fail silently to let Deepgram work)
+            try {
+                const { token } = await voiceApi.getToken(roomName, getToken);
+                const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+                if (livekitUrl) {
+                    const room = new Room();
+                    roomRef.current = room;
+                    await room.connect(livekitUrl, token);
+                    
+                    const track = await createLocalAudioTrack({
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    });
+                    localTrackRef.current = track;
+                    await room.localParticipant.publishTrack(track);
+                    console.log('[useVoice] Connected to LiveKit successfully');
+                }
+            } catch (lkErr) {
+                console.warn('[useVoice] LiveKit connection failed (continuing to Deepgram STT):', lkErr);
             }
 
-            const room = new Room();
-            roomRef.current = room;
-
-            await room.connect(livekitUrl, token);
-            setIsConnected(true);
-
-            // 2. Start local audio
-            const track = await createLocalAudioTrack();
-            await room.localParticipant.publishTrack(track);
-
-            // 3. Connect Deepgram via WebSocket (direct browser-to-deepgram)
+            // 2. Deepgram — dedicated separate mic stream
             const dgApiKey = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
-            console.log('[useVoice] Deepgram API Key present:', !!dgApiKey);
+            if (!dgApiKey) {
+                console.warn('[useVoice] Deepgram API Key missing — transcription disabled');
+                setError('Deepgram API key is missing. Transcription disabled.');
+                return;
+            }
 
-            if (dgApiKey) {
-                const socket = new WebSocket('wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true', [
-                    'token',
-                    dgApiKey,
-                ]);
+            const socket = new WebSocket(
+                'wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&endpointing=800',
+                ['token', dgApiKey]
+            );
+            socketRef.current = socket;
 
-                socket.onopen = () => {
-                    console.log('[useVoice] Deepgram Socket Open');
-                    // Construction of a MediaStream from the track to ensure compatibility
-                    const ms = new MediaStream([track.mediaStreamTrack!]);
-                    const mediaRecorder = new MediaRecorder(ms);
-                    mediaRecorderRef.current = mediaRecorder;
-                    mediaRecorder.ondataavailable = (event) => {
-                        if (event.data.size > 0 && socket.readyState === 1) {
-                            socket.send(event.data);
+            socket.onopen = async () => {
+                try {
+                    const micStream = await navigator.mediaDevices.getUserMedia({
+                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                    });
+                    micStreamRef.current = micStream;
+
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                        ? 'audio/webm;codecs=opus'
+                        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+                            ? 'audio/ogg;codecs=opus'
+                            : 'audio/webm';
+
+                    const mr = new MediaRecorder(micStream, { mimeType });
+                    mediaRecorderRef.current = mr;
+
+                    mr.ondataavailable = (e) => {
+                        if (e.data.size > 0 && socket.readyState === WebSocket.OPEN && !isAiTalkingRef.current) {
+                            socket.send(e.data);
                         }
                     };
-                    mediaRecorder.start(250); // Increased timeslice for stability
-                };
+                    mr.start(250);
+                    
+                    // Mark voice input as connected when socket opens and mic is listening
+                    setIsConnected(true);
+                } catch (micErr: any) {
+                    console.error('[useVoice] Mic capture failed:', micErr);
+                    setError(micErr.message || 'Microphone access denied or failed.');
+                    setIsConnected(false);
+                    disconnect();
+                }
+            };
 
-                socket.onmessage = (message) => {
-                    const received = JSON.parse(message.data);
-                    const result = received.channel?.alternatives?.[0]?.transcript;
-                    if (result && received.is_final) {
-                        console.log('[useVoice] Transcript Received:', result);
-                        setTranscript(prev => prev + ' ' + result);
-                    }
-                };
+            socket.onmessage = (msg) => {
+                const data = JSON.parse(msg.data);
+                const text = data.channel?.alternatives?.[0]?.transcript;
+                if (text && data.is_final) {
+                    setTranscript(prev => (prev + ' ' + text).trim());
+                }
+            };
 
-                socket.onerror = (err) => {
-                    console.error('[useVoice] Deepgram Socket Error:', err);
-                };
-
-                socket.onclose = () => {
-                    console.log('[useVoice] Deepgram Socket Closed');
-                };
-
-                socketRef.current = socket;
-            } else {
-                console.warn('[useVoice] Deepgram API Key is missing - transcription will not work.');
-            }
+            socket.onerror = (e) => {
+                console.error('[useVoice] Deepgram error:', e);
+                setError('Deepgram connection error.');
+            };
+            socket.onclose = () => {
+                console.log('[useVoice] Deepgram closed');
+                setIsConnected(false);
+            };
 
         } catch (err: any) {
-            console.error('Voice connection error:', err);
+            console.error('[useVoice] connect error:', err);
             setError(err.message || 'Failed to connect to voice services');
+            setIsConnected(false);
         } finally {
             setIsConnecting(false);
         }
     }, [roomName, getToken, disconnect]);
 
-    const speak = useCallback(async (text: string) => {
+    /**
+     * speak() — returns a Promise that resolves when audio finishes playing.
+     * A new call to speak() automatically cancels any previous in-flight call.
+     */
+    const speak = useCallback(async (text: string): Promise<void> => {
         if (!text) return;
 
+        // Bump version to invalidate older calls
+        speakVersionRef.current += 1;
+        const myVersion = speakVersionRef.current;
+
+        // Stop anything currently playing
+        if (currentAudioRef.current) {
+            try {
+                currentAudioRef.current.pause();
+                currentAudioRef.current.src = '';
+            } catch (_) { }
+            currentAudioRef.current = null;
+        }
+
+        setIsAiTalking(true);
+
         try {
-            setIsAiTalking(true);
             const blob = await voiceApi.getTTS(text, getToken);
+
+            // If a newer speak() call arrived while we were fetching TTS, bail out
+            if (speakVersionRef.current !== myVersion) return;
+
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
+            currentAudioRef.current = audio;
 
-            audio.onended = () => {
-                setIsAiTalking(false);
-                URL.revokeObjectURL(url);
-            };
-
-            await audio.play();
+            return new Promise<void>((resolve) => {
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    if (speakVersionRef.current === myVersion) {
+                        setIsAiTalking(false);
+                        currentAudioRef.current = null;
+                    }
+                    resolve();
+                };
+                audio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    if (speakVersionRef.current === myVersion) {
+                        setIsAiTalking(false);
+                        currentAudioRef.current = null;
+                    }
+                    resolve();
+                };
+                audio.play().catch(() => {
+                    if (speakVersionRef.current === myVersion) setIsAiTalking(false);
+                    resolve();
+                });
+            });
         } catch (err) {
-            console.error('TTS error:', err);
-            setIsAiTalking(false);
+            console.error('[useVoice] TTS error:', err);
+            if (speakVersionRef.current === myVersion) setIsAiTalking(false);
         }
     }, [getToken]);
 
@@ -140,6 +236,6 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
         transcript,
         setTranscript,
         speak,
-        isAiTalking
+        isAiTalking,
     };
 };

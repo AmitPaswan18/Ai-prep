@@ -135,7 +135,7 @@ Only return valid JSON, no additional text.`;
 }
 
 /**
- * Analyze interview responses using Gemini AI
+ * Analyze interview responses using OpenAI or Gemini AI
  */
 export async function analyzeInterviewResponses(
     interviewData: {
@@ -146,7 +146,7 @@ export async function analyzeInterviewResponses(
     },
     responses: InterviewResponse[]
 ): Promise<InterviewAnalysis> {
-    const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
     const prompt = `You are an expert interview evaluator. Analyze the following interview performance:
 
@@ -206,6 +206,50 @@ Return the response in the following JSON format:
 }
 
 Only return valid JSON, no additional text.`;
+
+    if (OPENAI_API_KEY) {
+        console.log("[AI-CORE] Analyzing interview responses using OpenAI...");
+        try {
+            const openAIRes = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    response_format: { type: "json_object" },
+                    messages: [
+                        { role: "system", content: "You are an expert interview evaluator that outputs JSON." },
+                        { role: "user", content: prompt }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.5
+                })
+            });
+
+            if (!openAIRes.ok) {
+                throw new Error(`OpenAI API Error: ${openAIRes.status} ${await openAIRes.text()}`);
+            }
+
+            const openAIData = await openAIRes.json() as any;
+            const text = openAIData?.choices?.[0]?.message?.content || "";
+            const parsed = JSON.parse(text);
+            return {
+                overallScore: parsed.overallScore || 0,
+                summary: parsed.summary || "",
+                strengths: parsed.strengths || [],
+                weaknesses: parsed.weaknesses || [],
+                questionScores: parsed.questionScores || [],
+                skillScores: parsed.skillScores || [],
+            };
+        } catch (error) {
+            console.error("[AI-CORE] OpenAI analysis failed, falling back to Gemini:", error);
+        }
+    }
+
+    console.log("[AI-CORE] Analyzing interview responses using Gemini...");
+    const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     try {
         const result = await model.generateContent(prompt);

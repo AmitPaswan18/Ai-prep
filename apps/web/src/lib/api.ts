@@ -54,6 +54,8 @@ export interface Interview {
     color?: string;
     role?: string;
     level?: string;
+    isTemplate?: boolean;
+    status?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -316,7 +318,33 @@ export const voiceApi = {
             throw new Error(error.error || 'Failed to generate TTS');
         }
         return response.blob();
-    }
+    },
+
+    // Get AI-generated hint for a question (spoken aloud in podcast mode)
+    async getHint(question: string, partialAnswer?: string, getToken?: () => Promise<string | null>): Promise<{ hint: string }> {
+        const response = await authFetch(`${API_BASE_URL}/voice/hint`, {
+            method: 'POST',
+            body: JSON.stringify({ question, partialAnswer }),
+        }, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to get hint');
+        }
+        return response.json();
+    },
+
+    // Analyze a specific question+answer pair and suggest improvements
+    async analyzeAnswer(question: string, answer: string | null, getToken?: () => Promise<string | null>): Promise<{ analysis: string }> {
+        const response = await authFetch(`${API_BASE_URL}/voice/analyze`, {
+            method: 'POST',
+            body: JSON.stringify({ question, answer }),
+        }, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to analyze answer');
+        }
+        return response.json();
+    },
 };
 
 export const userApi = {

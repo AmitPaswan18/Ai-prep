@@ -60,6 +60,7 @@ const InterviewRoomPage = () => {
 
   const {
       connect: connectVoice,
+      disconnect: disconnectVoice,
       isConnected: isVoiceConnected,
       isConnecting: isVoiceConnecting,
       transcript: liveTranscript,
@@ -97,7 +98,7 @@ const InterviewRoomPage = () => {
         // startSession will clone it. We should then redirect to the new ID.
         if (!sessionData.questions || sessionData.questions.length === 0 || sessionData.interview.isTemplate) {
           console.log("[Room] Starting fresh session (cloning if needed)");
-          const newSession = await interviewSessionApi.startSession(interviewId, getToken);
+          const newSession = await interviewSessionApi.startSession(interviewId, undefined, getToken);
           if (newSession.interview.id !== interviewId) {
             router.replace(`/interviews/room/${newSession.interview.id}`);
             return;
@@ -196,18 +197,16 @@ const InterviewRoomPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-
       {/* Top Bar - Session Status */}
-      <div className="pt-14 px-4 md:px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto py-2 flex items-center justify-between gap-4 md:gap-6">
-          <div className="flex items-center gap-4">
-             <div className="p-2 bg-muted rounded-xl border border-border">
-                <Brain className="h-5 w-5 text-primary" />
+      <div className="py-2 px-4 md:px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto py-1 flex items-center justify-between gap-4 md:gap-6">
+          <div className="flex items-center gap-3">
+             <div className="p-1.5 bg-muted rounded-xl border border-border">
+                <Brain className="h-4.5 w-4.5 text-primary" />
              </div>
              <div className="hidden sm:block">
-                <h2 className="font-bold tracking-tight">{session?.interview?.title}</h2>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                <h2 className="font-bold tracking-tight text-sm md:text-base">{session?.interview?.title}</h2>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                   <span className="text-primary/70">{session?.interview?.category}</span>
                   <span className="opacity-20">•</span>
                   <span>{session?.interview?.difficulty}</span>
@@ -215,8 +214,8 @@ const InterviewRoomPage = () => {
              </div>
           </div>
 
-          <div className="flex-1 max-w-sm px-8 hidden md:block">
-             <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+          <div className="flex-1 max-w-xs px-6 hidden md:block">
+             <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
                 <span>Phase Progress</span>
                 <span>{Math.round(progress)}%</span>
              </div>
@@ -229,122 +228,122 @@ const InterviewRoomPage = () => {
              </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
              <div className="text-right">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Time Remaining</p>
-                <p className={`font-mono text-xl font-bold tracking-tighter ${timeRemaining < 60 ? 'text-destructive animate-pulse' : 'text-foreground'}`}>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Time Remaining</p>
+                <p className={`font-mono text-lg font-bold tracking-tighter ${timeRemaining < 60 ? 'text-destructive animate-pulse' : 'text-foreground'}`}>
                   {formatTime(timeRemaining)}
                 </p>
              </div>
-             <Button variant="ghost" className="rounded-xl h-12 px-5 border border-border/50 hover:bg-muted" onClick={() => router.push('/dashboard')}>
+             <Button variant="ghost" className="rounded-xl h-10 px-4 text-sm border border-border/50 hover:bg-muted" onClick={() => router.push('/dashboard')}>
                 Exit
              </Button>
           </div>
         </div>
       </div>
-
       {/* Main Studio Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-5 grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
         
         {/* Left Phase - Artificial Intelligence */}
-        <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
-           <Card className="rounded-[2rem] md:rounded-[2.5rem] border-border/50 bg-muted/30 backdrop-blur-sm overflow-hidden p-6 md:p-8 lg:sticky lg:top-28">
-              <div className="relative aspect-square rounded-[2rem] bg-gradient-to-br from-primary/10 via-background to-accent/5 flex items-center justify-center mb-8 shadow-soft border border-border/30">
+        <div className="lg:col-span-2 space-y-4 order-2 lg:order-1">
+           <Card className="rounded-2xl border-border/50 bg-muted/30 backdrop-blur-sm overflow-hidden p-4 md:p-5 lg:sticky lg:top-20">
+              <div className="relative h-36 sm:h-40 w-full rounded-xl bg-gradient-to-br from-primary/10 via-background to-accent/5 flex items-center justify-center mb-3 shadow-soft border border-border/30">
                  {/* Visualizer Pulses */}
                  {isAiTalking && (
-                   <>
-                     <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.1, 0.3] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 border-2 border-primary/20 rounded-[2rem]" />
-                     <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-8 border border-accent/20 rounded-[2rem]" />
-                   </>
+                    <>
+                      <motion.div animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.1, 0.3] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 border-2 border-primary/20 rounded-xl" />
+                      <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.2, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-3 border border-accent/20 rounded-xl" />
+                    </>
                  )}
-                 <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all ${isAiTalking ? 'bg-primary shadow-glow' : 'bg-muted border border-border'}`}>
-                    <Brain className={`w-16 h-16 ${isAiTalking ? 'text-white' : 'text-muted-foreground'}`} />
+                 <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${isAiTalking ? 'bg-primary shadow-glow' : 'bg-muted border border-border'}`}>
+                    <Brain className={`w-8 h-8 ${isAiTalking ? 'text-white' : 'text-muted-foreground'}`} />
                  </div>
                  
-                 <div className="absolute bottom-6 flex items-center gap-3">
-                    <Badge className={`px-4 py-1.5 rounded-full capitalize ${isAiTalking ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
+                 <div className="absolute bottom-3 flex items-center gap-2">
+                    <Badge className={`px-2.5 py-0.5 rounded-full capitalize text-[9px] ${isAiTalking ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
                        {isAiTalking ? (
-                         <span className="flex items-center gap-2"><Volume2 className="h-3 w-3" /> Transmitting...</span>                        ) : 'Ready'}
+                         <span className="flex items-center gap-1"><Volume2 className="h-2.5 w-2.5 animate-pulse" /> Transmitting...</span>                        ) : 'Ready'}
                     </Badge>
                  </div>
               </div>
 
               {isElevenLabsConfigured === false && (
-                <div className="mb-6 p-4 rounded-2xl bg-destructive/5 border border-destructive/20 space-y-2">
-                   <div className="flex items-center gap-2 text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Voice Disabled</span>
+                <div className="mb-3 p-2.5 rounded-lg bg-destructive/5 border border-destructive/20 space-y-1">
+                   <div className="flex items-center gap-1.5 text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest">Voice Disabled</span>
                    </div>
-                   <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-                      AI voice is disabled because no ElevenLabs API key was found. <Link href="/dashboard/settings" className="text-primary hover:underline">Add key in settings</Link> to enable audio.
+                   <p className="text-[9px] text-muted-foreground font-medium leading-relaxed">
+                      AI voice is disabled. <Link href="/dashboard/settings" className="text-primary hover:underline">Add key in settings</Link> to enable audio.
                    </p>
                 </div>
               )}
 
-              <div className="space-y-4">
-                 <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">
-                    <div className="flex items-center gap-3">
-                       <Activity className="h-4 w-4 text-primary" />
-                       <span className="text-sm font-semibold">Voice Status</span>
+              <div className="space-y-2">
+                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-background/50 border border-border/30">
+                    <div className="flex items-center gap-2">
+                       <Activity className="h-3 w-3 text-primary" />
+                       <span className="text-xs font-semibold">Voice Status</span>
                     </div>
-                    <span className="text-xs font-bold text-primary italic uppercase tracking-widest">{isVoiceConnected ? 'Active' : 'Standby'}</span>
+                    <span className="text-[9px] font-bold text-primary italic uppercase tracking-widest">{isVoiceConnected ? 'Active' : 'Standby'}</span>
                  </div>
-                 <div className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/30">
-                    <div className="flex items-center gap-3">
-                       <Zap className="h-4 w-4 text-accent" />
-                       <span className="text-sm font-semibold">Role Assessment</span>
+                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-background/50 border border-border/30">
+                    <div className="flex items-center gap-2">
+                       <Zap className="h-3 w-3 text-accent" />
+                       <span className="text-xs font-semibold">Role Assessment</span>
                     </div>
-                    <span className="text-xs font-bold text-accent italic uppercase tracking-widest">Technical Expert</span>
+                    <span className="text-[9px] font-bold text-accent italic uppercase tracking-widest">Technical Expert</span>
                  </div>
               </div>
            </Card>
         </div>
 
         {/* Right Phase - Human Interaction */}
-        <div className="lg:col-span-3 space-y-8 order-1 lg:order-2">
+        <div className="lg:col-span-3 space-y-4 order-1 lg:order-2">
            <AnimatePresence mode="wait">
              <motion.div
                key={currentQuestionIndex}
                initial={{ opacity: 0, x: 20 }}
                animate={{ opacity: 1, x: 0 }}
                exit={{ opacity: 0, x: -20 }}
-               className="space-y-8"
+               className="space-y-4"
              >
-                <div className="space-y-3">
-                   <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-[0.2em] text-[10px]">
-                      <Sparkles className="h-3.5 w-3.5" /> Question {currentQuestionIndex + 1}
-                   </div>
-                    <h1 className="text-2xl md:text-3xl font-bold font-display leading-[1.2]">
+                 <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-[0.2em] text-[8px] md:text-[9px]">
+                       <Sparkles className="h-2.5 w-2.5" /> Question {currentQuestionIndex + 1}
+                    </div>
+                    <h1 className="text-lg md:text-xl font-bold font-display leading-[1.2]">
                        {currentQuestion?.question}
                     </h1>
-                </div>
+                 </div>
 
-                <div className="relative group">                    <Textarea
+                 <div className="relative group">
+                    <Textarea
                       placeholder="The stage is yours. Focus on structured reasoning..."
-                      className="min-h-[300px] md:min-h-[400px] rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10 text-base md:text-lg border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed"
+                      className="min-h-[140px] md:min-h-[180px] rounded-xl p-3 md:p-4 text-sm border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed"
                       value={currentAnswer}
                       onChange={(e) => setCurrentAnswer(e.target.value)}
                     />
                     
-                    <div className="absolute bottom-4 md:bottom-6 right-4 md:right-8 flex flex-wrap justify-end items-center gap-3 md:gap-4">
+                    <div className="absolute bottom-2.5 right-3.5 flex flex-wrap justify-end items-center gap-2">
                        {isVoiceConnected && (
-                         <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full animate-pulse" />
-                            <span className="text-[9px] md:text-[10px] font-bold text-emerald-500 uppercase tracking-widest whitespace-nowrap">Deepgram Active</span>
+                         <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                            <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
+                            <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest whitespace-nowrap">Deepgram Active</span>
                          </div>
                        )}
-                       <span className="text-[10px] font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{currentAnswer.length} Chars</span>
+                       <span className="text-[8px] md:text-[9px] font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{currentAnswer.length} Chars</span>
                     </div>  
-                </div>
-                 <div className="flex flex-col sm:flex-row items-center gap-4">
+                 </div>
+                 <div className="flex flex-col sm:flex-row items-center gap-2.5">
                     <Button 
                      size="lg" 
                      variant={isVoiceConnected ? 'secondary' : 'outline'}
-                     onClick={connectVoice}
+                     onClick={isVoiceConnected ? disconnectVoice : connectVoice}
                      disabled={isVoiceConnecting}
-                     className="h-14 md:h-16 rounded-xl md:rounded-2xl w-full sm:flex-1 border-border/50 text-sm md:text-base font-bold transition-all hover:shadow-soft"
+                     className="h-10 rounded-xl w-full sm:flex-1 border-border/50 text-xs font-bold transition-all hover:shadow-soft"
                     >
-                      {isVoiceConnecting ? <Loader2 className="animate-spin h-5 w-5" /> : isVoiceConnected ? <MicOff className="h-5 w-5 mr-3 text-emerald-500" /> : <Mic className="h-5 w-5 mr-3" /> }
+                      {isVoiceConnecting ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : isVoiceConnected ? <MicOff className="h-3.5 w-3.5 mr-1.5 text-emerald-500" /> : <Mic className="h-3.5 w-3.5 mr-1.5" /> }
                       {isVoiceConnected ? 'Disconnect Voice' : 'Start Voice Input'}
                     </Button>
                     
@@ -353,38 +352,38 @@ const InterviewRoomPage = () => {
                        size="lg" 
                        onClick={handleNextQuestion}
                        disabled={!currentAnswer.trim()}
-                       className="h-14 md:h-16 rounded-xl md:rounded-2xl w-full sm:flex-1 gradient-primary shadow-glow text-sm md:text-base font-bold group"
+                       className="h-10 rounded-xl w-full sm:flex-1 gradient-primary shadow-glow text-xs font-bold group border-none text-white"
                       >
-                        Next Question <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                        Next Question <ChevronRight className="ml-0.5 h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </Button>
                     ) : (
                       <Button 
                        size="lg" 
                        onClick={() => handleFinishInterview(false)}
                        disabled={submitting || !currentAnswer.trim()}
-                       className="h-14 md:h-16 rounded-xl md:rounded-2xl w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-glow text-sm md:text-base font-bold"
+                       className="h-10 rounded-xl w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-glow text-xs font-bold border-none text-white"
                       >
-                        {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle2 className="h-5 w-5 mr-3" />}
+                        {submitting ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />}
                         Finalize Session
                       </Button>
                     )}
                  </div>
-             </motion.div>
+              </motion.div>
            </AnimatePresence>
         </div>
 
       </main>
 
       {/* Persistence Dock */}
-      <footer className="h-auto py-6 border-t border-border/30 bg-background flex items-center px-4 md:px-12">
+      <footer className="h-auto py-3 border-t border-border/30 bg-background flex items-center px-4 md:px-12">
          <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 sm:gap-12 text-muted-foreground">
             <div className="flex items-center gap-2">
-               <User className="h-4 w-4" />
-               <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">{responses.size} / {session?.questions?.length} Saved</span>
+               <User className="h-3.5 w-3.5" />
+               <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">{responses.size} / {session?.questions?.length} Saved</span>
             </div>
             <div className="flex items-center gap-2">
-               <Clock className="h-4 w-4" />
-               <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Active {formatTime(totalTimeElapsed)}</span>
+               <Clock className="h-3.5 w-3.5" />
+               <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Active {formatTime(totalTimeElapsed)}</span>
             </div>
          </div>
       </footer>

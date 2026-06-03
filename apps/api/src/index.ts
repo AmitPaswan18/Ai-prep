@@ -3,12 +3,13 @@ import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
-import { clerkMiddleware } from "@clerk/express";
+import { clerkMiddleware, getAuth } from "@clerk/express";
 import authRoutes from "./routes/auth.routes.js";
 import interviewRoutes from "./routes/interview.routes.js";
 import interviewSessionRoutes from "./routes/interview-session.routes.js";
 import voiceRoutes from "./routes/voice.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import { getOrCreateUser } from "./services/user.service.js";
 
 
 
@@ -49,6 +50,19 @@ app.use((req, res, next) => {
 });
 
 app.use(clerkMiddleware());
+
+// Auto-provision Clerk users in the database
+app.use(async (req, res, next) => {
+  const auth = getAuth(req);
+  if (auth && auth.userId) {
+    try {
+      await getOrCreateUser({ clerkUserId: auth.userId });
+    } catch (err) {
+      console.error("[Auth Middleware] Auto-provisioning user failed:", err);
+    }
+  }
+  next();
+});
 
 app.use("/auth", authRoutes);
 app.use("/interview", interviewRoutes);

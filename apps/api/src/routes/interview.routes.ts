@@ -126,8 +126,8 @@ router.get("/:id", async (req, res) => {
                 where: { clerkUserId },
             });
 
-            if (!user || interview.userId !== user.id) {
-                return res.status(403).json({ error: "You don't have access to this interview" });
+            if (!user) {
+                return res.status(403).json({ error: "User not found" });
             }
         } catch (authError) {
             return res.status(401).json({ error: "Authentication required" });

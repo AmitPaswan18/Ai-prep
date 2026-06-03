@@ -32,17 +32,24 @@ export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-  domain?: string;
 }>) {
+  const isProd = process.env.NODE_ENV === "production";
+
+  const Provider = ClerkProvider as any;
+
   return (
-    <ClerkProvider
-    publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    <Provider
+      proxyUrl={isProd ? "https://clerk.interviewai.dpdns.org" : undefined}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      domain={isProd ? process.env.NEXT_PUBLIC_CLERK_DOMAIN : undefined}
+      isSatellite={isProd ? process.env.NEXT_PUBLIC_CLERK_IS_SATELLITE === "true" : false}
+    >
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           {children}
           <Toaster />
         </body>
       </html>
-    </ClerkProvider>
+    </Provider>
   );
 }
