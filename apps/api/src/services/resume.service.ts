@@ -1,14 +1,15 @@
-import { PDFParse } from 'pdf-parse';
+import { extractText, getDocumentProxy } from 'unpdf';
 import mammoth from 'mammoth';
 
 export async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
     if (mimetype === 'application/pdf') {
-        const parser = new PDFParse({ data: buffer });
         try {
-            const result = await parser.getText();
-            return result.text;
-        } finally {
-            await parser.destroy();
+            const pdf = await getDocumentProxy(new Uint8Array(buffer));
+            const { text } = await extractText(pdf, { mergePages: true });
+            return text;
+        } catch (error: any) {
+            console.error('[Resume Parser] Failed to parse PDF resume:', error);
+            throw new Error(`Failed to parse PDF resume: ${error.message}`);
         }
     } else if (
         mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
