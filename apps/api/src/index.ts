@@ -24,6 +24,9 @@ const envResult = dotenv.config();
 
 const app = express();
 
+// Enable trust proxy so Express correctly interprets headers forwarded by Vercel's proxy (HTTPS, host, etc.)
+app.set("trust proxy", true);
+
 // Configure CORS for production
 const allowedOrigins = [
   "http://localhost:3000",
