@@ -18,6 +18,11 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
     const micStreamRef = useRef<MediaStream | null>(null);
     // Monotonic speak-call counter — lets us cancel stale speak() calls
     const speakVersionRef = useRef(0);
+    // Store getToken in a ref so connect/speak useCallbacks stay stable
+    // (Clerk returns a new getToken reference every render which would otherwise
+    //  cause infinite reconnect loops if included in dependency arrays)
+    const getTokenRef = useRef(getToken);
+    useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
 
     useEffect(() => {
         isAiTalkingRef.current = isAiTalking;
@@ -70,9 +75,9 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
 
             // 1. LiveKit (Optional connection - fail silently to let Deepgram work)
             try {
-                const { token } = await voiceApi.getToken(roomName, getToken);
                 const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
                 if (livekitUrl) {
+                    const { token } = await voiceApi.getToken(roomName, getTokenRef.current);
                     const room = new Room();
                     roomRef.current = room;
                     await room.connect(livekitUrl, token);
@@ -161,7 +166,7 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
         } finally {
             setIsConnecting(false);
         }
-    }, [roomName, getToken, disconnect]);
+    }, [roomName, disconnect]);
 
     /**
      * speak() — returns a Promise that resolves when audio finishes playing.
@@ -186,7 +191,7 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
         setIsAiTalking(true);
 
         try {
-            const blob = await voiceApi.getTTS(text, getToken);
+            const blob = await voiceApi.getTTS(text, getTokenRef.current);
 
             // If a newer speak() call arrived while we were fetching TTS, bail out
             if (speakVersionRef.current !== myVersion) return;
@@ -221,7 +226,7 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
             console.error('[useVoice] TTS error:', err);
             if (speakVersionRef.current === myVersion) setIsAiTalking(false);
         }
-    }, [getToken]);
+    }, []);
 
     useEffect(() => {
         return () => disconnect();

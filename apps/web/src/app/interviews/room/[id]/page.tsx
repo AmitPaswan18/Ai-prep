@@ -57,6 +57,7 @@ const InterviewRoomPage = () => {
   const [totalDuration, setTotalDuration] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const connectAttemptedRef = useRef(false);
 
   const {
       connect: connectVoice,
@@ -116,6 +117,23 @@ const InterviewRoomPage = () => {
     };
     if (interviewId) loadSession();
   }, [interviewId, getToken]);
+
+  // Auto-scroll textarea to bottom when transcription updates
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+    }
+  }, [currentAnswer]);
+
+  // Auto-connect voice ONCE when session is loaded — ref guard prevents
+  // infinite loops from getToken changing reference on every render.
+  useEffect(() => {
+    if (session && !connectAttemptedRef.current) {
+      connectAttemptedRef.current = true;
+      connectVoice();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   useEffect(() => {
     if (!session || totalDuration === 0) return;
@@ -197,6 +215,21 @@ const InterviewRoomPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(128, 128, 128, 0.2);
+          border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(128, 128, 128, 0.4);
+        }
+      `}} />
       {/* Top Bar - Session Status */}
       <div className="py-2 px-4 md:px-6 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto py-1 flex items-center justify-between gap-4 md:gap-6">
@@ -319,8 +352,9 @@ const InterviewRoomPage = () => {
 
                  <div className="relative group">
                     <Textarea
+                      ref={textareaRef}
                       placeholder="The stage is yours. Focus on structured reasoning..."
-                      className="min-h-[140px] md:min-h-[180px] rounded-xl p-3 md:p-4 text-sm border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed"
+                      className="min-h-[140px] md:min-h-[180px] rounded-xl p-3 md:p-4 text-sm border-border/50 bg-muted/10 group-focus-within:bg-background group-focus-within:shadow-elevated transition-all resize-none leading-relaxed custom-scrollbar"
                       value={currentAnswer}
                       onChange={(e) => setCurrentAnswer(e.target.value)}
                     />
