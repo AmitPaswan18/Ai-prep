@@ -23,6 +23,25 @@ router.get("/", async (req, res) => {
         // If requesting templates explicitly
         if (template === "true") {
             filter.isTemplate = true;
+        } else if (status === "COMPLETED") {
+            // For completed interviews, strictly enforce logged in user ownership!
+            try {
+                const { userId: clerkUserId } = getAuth(req);
+                if (!clerkUserId) {
+                    return res.status(401).json({ error: "Authentication required for completed interviews" });
+                }
+                const user = await prisma.user.findUnique({
+                    where: { clerkUserId },
+                });
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+                filter.userId = user.id;
+                filter.isTemplate = false;
+            } catch (authError) {
+                console.error("[ERROR] Auth failed for completed history:", authError);
+                return res.status(401).json({ error: "Authentication failed" });
+            }
         } else {
             // For general 'Lab' view, show BOTH templates AND user's own interviews
             try {
@@ -128,6 +147,11 @@ router.get("/:id", async (req, res) => {
 
             if (!user) {
                 return res.status(403).json({ error: "User not found" });
+            }
+
+            // Verify the user actually owns this interview
+            if (interview.userId !== user.id) {
+                return res.status(403).json({ error: "You don't have access to this interview" });
             }
         } catch (authError) {
             return res.status(401).json({ error: "Authentication required" });

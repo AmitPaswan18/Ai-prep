@@ -27,6 +27,7 @@ type GetInterviewsFilter = {
     userId?: string;
     search?: string;
     status?: string;
+    OR?: any[];
 };
 
 export async function createInterview(input: CreateInterviewInput) {
@@ -63,32 +64,43 @@ export async function getInterviews(filter?: GetInterviewsFilter) {
     }
 
     const where: any = {};
+    const andConditions: any[] = [];
 
     if (filter?.category) {
-        where.category = filter.category;
+        andConditions.push({ category: filter.category });
     }
 
     if (filter?.difficulty) {
-        where.difficulty = filter.difficulty;
+        andConditions.push({ difficulty: filter.difficulty });
     }
 
     if (filter?.isTemplate !== undefined) {
-        where.isTemplate = filter.isTemplate;
+        andConditions.push({ isTemplate: filter.isTemplate });
     }
 
     if (filter?.userId) {
-        where.userId = filter.userId;
+        andConditions.push({ userId: filter.userId });
     }
 
     if (filter?.status) {
-        where.status = filter.status;
+        andConditions.push({ status: filter.status });
+    }
+
+    if (filter?.OR) {
+        andConditions.push({ OR: filter.OR });
     }
 
     if (filter?.search) {
-        where.OR = [
-            { title: { contains: filter.search, mode: "insensitive" } },
-            { description: { contains: filter.search, mode: "insensitive" } },
-        ];
+        andConditions.push({
+            OR: [
+                { title: { contains: filter.search, mode: "insensitive" } },
+                { description: { contains: filter.search, mode: "insensitive" } },
+            ]
+        });
+    }
+
+    if (andConditions.length > 0) {
+        where.AND = andConditions;
     }
 
     return prisma.interview.findMany({
