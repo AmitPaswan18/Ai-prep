@@ -39,10 +39,10 @@ export default async function RootLayout({
 
   return (
     <Provider
-      proxyUrl={isProd ? "https://clerk.interviewai.dpdns.org" : undefined}
+      proxyUrl={process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined}
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      domain={isProd ? process.env.NEXT_PUBLIC_CLERK_DOMAIN : undefined}
-      isSatellite={isProd ? process.env.NEXT_PUBLIC_CLERK_IS_SATELLITE === "true" : false}
+      domain={process.env.NEXT_PUBLIC_CLERK_DOMAIN || undefined}
+      isSatellite={process.env.NEXT_PUBLIC_CLERK_IS_SATELLITE === "true"}
     >
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -117,12 +117,22 @@ export default function AuthPage() {
               transition={{ delay: 0.3, duration: 0.8 }}
               className="flex flex-col sm:flex-row gap-6 justify-center items-center"
             >
-              <Link href="/auth?mode=signup">
-                <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-semibold gradient-primary shadow-glow hover:scale-105 transition-all">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <SignedIn>
+                <Link href="/dashboard">
+                  <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-semibold gradient-primary shadow-glow hover:scale-105 transition-all">
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              </SignedIn>
+              <SignedOut>
+                <SignUpButton mode="modal">
+                  <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-semibold gradient-primary shadow-glow hover:scale-105 transition-all">
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </SignUpButton>
+              </SignedOut>
               <Link href="/interviews">
                 <Button variant="ghost" size="lg" className="h-14 px-10 rounded-2xl text-lg font-medium hover:bg-muted group">
                   <Video className="mr-2 h-5 w-5 group-hover:text-primary transition-colors" />
@@ -203,11 +213,20 @@ export default function AuthPage() {
               <p className="text-xl text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed">Join 10,000+ candidates who used InterviewAI to secure offers at Fortune 500 companies this year.</p>
               
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <Link href="/auth?mode=signup">
-                  <Button size="lg" className="h-16 px-12 rounded-2xl bg-white text-primary hover:bg-white/90 shadow-xl font-bold text-lg">
-                    Start Your First Session
-                  </Button>
-                </Link>
+                <SignedIn>
+                  <Link href="/dashboard">
+                    <Button size="lg" className="h-16 px-12 rounded-2xl bg-white text-primary hover:bg-white/90 shadow-xl font-bold text-lg">
+                      Go to Dashboard
+                    </Button>
+                  </Link>
+                </SignedIn>
+                <SignedOut>
+                  <SignUpButton mode="modal">
+                    <Button size="lg" className="h-16 px-12 rounded-2xl bg-white text-primary hover:bg-white/90 shadow-xl font-bold text-lg">
+                      Start Your First Session
+                    </Button>
+                  </SignUpButton>
+                </SignedOut>
               </div>
               
               <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-white/60 text-sm font-medium">
