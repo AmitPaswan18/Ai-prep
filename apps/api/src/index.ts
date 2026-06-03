@@ -42,6 +42,16 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   }),
 );
+
+// Explicitly handle OPTIONS preflight requests before Clerk middleware
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -72,6 +82,25 @@ app.use("/interview", interviewRoutes);
 app.use("/interview-session", interviewSessionRoutes);
 app.use("/voice", voiceRoutes);
 app.use("/user", userRoutes);
+
+// Global error handler to preserve CORS headers and return clean JSON
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("[Unhandled API Error]:", err);
+
+  // Set CORS headers manually in case the error bypassed CORS middleware
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || "Internal Server Error",
+      code: err.code || "internal_error"
+    }
+  });
+});
 
 
 
