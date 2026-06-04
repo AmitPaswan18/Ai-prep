@@ -38,6 +38,12 @@ export interface InterviewAnalysis {
         questionId: string;
         score: number;
         feedback: string;
+        codeReview?: {
+            runtimeComplexity: string;
+            spatialComplexity: string;
+            correctness: string;
+            cleanCode: string;
+        };
     }>;
     skillScores: Array<{
         skillName: string;
@@ -171,6 +177,76 @@ ${resumeText}`;
     }
 }
 
+export interface ResumeATSAnalysis {
+    score: number;
+    summary: string;
+    formattingScore: number;
+    skillsScore: number;
+    experienceScore: number;
+    strengths: string[];
+    weaknesses: string[];
+    improvements: string[];
+}
+
+/**
+ * Analyze resume text for ATS compatibility and structure using Gemini AI
+ */
+export async function analyzeResumeATS(resumeText: string): Promise<ResumeATSAnalysis> {
+    try {
+        const model = getGenAI().getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+        const prompt = `You are a professional ATS resume scanner and recruiter. Analyze the following resume text for ATS compatibility, layout structure, formatting conventions, experience depth, and skill alignment.
+Evaluate the resume and return a detailed report strictly in JSON format. Do not write any markdown code fences, headers, or explanations. Just return the JSON object:
+
+{
+  "score": 85, // Overall ATS score out of 100
+  "summary": "Professional summary of the resume's focus and strength...",
+  "formattingScore": 90, // Formatting score out of 100
+  "skillsScore": 80, // Skills match and depth score out of 100
+  "experienceScore": 75, // Experience detail and impact score out of 100
+  "strengths": ["list of key resume strengths"],
+  "weaknesses": ["list of clear weaknesses or missing parts in the resume"],
+  "improvements": ["actionable recommendations to optimize the resume for ATS and human reviewers"]
+}
+
+Resume text:
+${resumeText}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error("Invalid JSON response from AI");
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+            score: parsed.score || 0,
+            summary: parsed.summary || "",
+            formattingScore: parsed.formattingScore || 0,
+            skillsScore: parsed.skillsScore || 0,
+            experienceScore: parsed.experienceScore || 0,
+            strengths: parsed.strengths || [],
+            weaknesses: parsed.weaknesses || [],
+            improvements: parsed.improvements || [],
+        };
+    } catch (error) {
+        console.error("Error analyzing resume:", error);
+        return {
+            score: 0,
+            summary: "Failed to analyze resume details.",
+            formattingScore: 0,
+            skillsScore: 0,
+            experienceScore: 0,
+            strengths: [],
+            weaknesses: [],
+            improvements: ["Unable to scan resume content. Try uploading a different file formatting."],
+        };
+    }
+}
+
 
 /**
  * Analyze interview responses using OpenAI or Gemini AI
@@ -186,6 +262,7 @@ export async function analyzeInterviewResponses(
 ): Promise<InterviewAnalysis> {
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+    const isTechnical = (interviewData.category || "").toUpperCase() === "TECHNICAL" || (interviewData.category || "").toUpperCase() === "SYSTEM_DESIGN";
     const prompt = `You are an expert interview evaluator. Analyze the following interview performance:
 
 Interview Details:
@@ -213,7 +290,13 @@ Please provide a comprehensive analysis including:
    - Time management
    - Completeness of answers
 
-2. Individual question scores with specific feedback
+2. Individual question scores with specific feedback.
+${isTechnical ? `   IMPORTANT: For each technical coding response, provide a 'codeReview' block analyzing:
+   - 'runtimeComplexity': Estimated Big-O runtime complexity (e.g. "O(N)", "O(1)") with explanation.
+   - 'spatialComplexity': Estimated Big-O space complexity (e.g. "O(N)", "O(1)") with explanation.
+   - 'correctness': How functionally correct is the code, identifying any bugs or edge case failures.
+   - 'cleanCode': Quality of variables, design patterns, naming conventions, and code formatting.` : ""}
+
 3. Key strengths demonstrated
 4. Areas for improvement
 5. Skill-based scores for relevant competencies
@@ -228,7 +311,13 @@ Return the response in the following JSON format:
     {
       "questionId": "q1",
       "score": 90,
-      "feedback": "Detailed feedback for this question..."
+      "feedback": "Detailed feedback for this question..."${isTechnical ? `,
+      "codeReview": {
+        "runtimeComplexity": "O(N) because we iterate through the array once",
+        "spatialComplexity": "O(1) as we modify the inputs in place",
+        "correctness": "Fully functional. Passed all edge cases.",
+        "cleanCode": "Well-named variables, modular functions, clean formatting."
+      }` : ""}
     }
   ],
   "skillScores": [

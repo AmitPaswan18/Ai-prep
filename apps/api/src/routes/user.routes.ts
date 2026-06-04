@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth, getAuth } from "@clerk/express";
-import { prisma } from "@repo/db";
-import { extractResumeSkills } from "@ai-platform/ai-core";
+import { prisma, Prisma } from "@repo/db";
+import { extractResumeSkills, analyzeResumeATS } from "@ai-platform/ai-core";
 
 const router = Router();
 
@@ -12,7 +12,7 @@ const router = Router();
 router.get("/settings", requireAuth(), async (req, res) => {
     try {
         const { userId: clerkUserId } = getAuth(req);
-        
+
         const user = await prisma.user.findUnique({
             where: { clerkUserId: clerkUserId! },
             select: {
@@ -28,12 +28,12 @@ router.get("/settings", requireAuth(), async (req, res) => {
 
         const isElevenLabsConfigured = !!(user.elevenLabsApiKey || process.env.ELEVENLABS_API_KEY);
 
-        res.json({ 
-            success: true, 
-            data: { 
+        res.json({
+            success: true,
+            data: {
                 ...user,
-                isElevenLabsConfigured 
-            } 
+                isElevenLabsConfigured
+            }
         });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -83,12 +83,14 @@ router.post("/resume", requireAuth(), upload.single("resume"), async (req, res) 
         }
 
         const resumeText = await parseResume(file.buffer, file.mimetype);
+        const resumeAnalysis = await analyzeResumeATS(resumeText);
 
         const user = await prisma.user.update({
             where: { clerkUserId: clerkUserId! },
             data: {
                 resumeText: resumeText,
                 resumeUpdatedAt: new Date(),
+                resumeAnalysis: resumeAnalysis as any,
             },
             select: {
                 id: true,
@@ -96,8 +98,8 @@ router.post("/resume", requireAuth(), upload.single("resume"), async (req, res) 
             }
         });
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             message: "Resume parsed and updated successfully",
             data: {
                 resumeUpdatedAt: user.resumeUpdatedAt
@@ -116,12 +118,13 @@ router.post("/resume", requireAuth(), upload.single("resume"), async (req, res) 
 router.get("/resume", requireAuth(), async (req, res) => {
     try {
         const { userId: clerkUserId } = getAuth(req);
-        
+
         const user = await prisma.user.findUnique({
             where: { clerkUserId: clerkUserId! },
             select: {
                 resumeText: true,
                 resumeUpdatedAt: true,
+                resumeAnalysis: true,
             }
         });
 
@@ -129,14 +132,15 @@ router.get("/resume", requireAuth(), async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             data: {
                 hasResume: !!user.resumeText,
                 updatedAt: user.resumeUpdatedAt,
+                resumeAnalysis: user.resumeAnalysis,
                 // Only return snippet if requested, otherwise just status
                 snippet: user.resumeText ? user.resumeText.substring(0, 200) + "..." : null
-            } 
+            }
         });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -150,7 +154,7 @@ router.get("/resume", requireAuth(), async (req, res) => {
 router.get("/resume/skills", requireAuth(), async (req, res) => {
     try {
         const { userId: clerkUserId } = getAuth(req);
-        
+
         const user = await prisma.user.findUnique({
             where: { clerkUserId: clerkUserId! },
             select: {
@@ -163,15 +167,15 @@ router.get("/resume/skills", requireAuth(), async (req, res) => {
         }
 
         if (!user.resumeText) {
-            return res.json({ 
-                success: true, 
+            return res.json({
+                success: true,
                 data: { skills: [] }
             });
         }
 
         const skills = await extractResumeSkills(user.resumeText);
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             data: { skills }
         });
     } catch (error: any) {
@@ -187,12 +191,13 @@ router.get("/resume/skills", requireAuth(), async (req, res) => {
 router.delete("/resume", requireAuth(), async (req, res) => {
     try {
         const { userId: clerkUserId } = getAuth(req);
-        
+
         await prisma.user.update({
             where: { clerkUserId: clerkUserId! },
             data: {
                 resumeText: null,
-                resumeUpdatedAt: null
+                resumeUpdatedAt: null,
+                resumeAnalysis: Prisma.DbNull
             }
         });
 

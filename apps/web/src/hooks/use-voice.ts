@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Room, createLocalAudioTrack } from 'livekit-client';
 import { voiceApi } from '@/lib/api';
 
-export const useVoice = (roomName: string, getToken: () => Promise<string | null>) => {
+export const useVoice = (roomName: string, getToken: () => Promise<string | null>, voiceId?: string) => {
     const [isConnecting, setIsConnecting] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [ttsError, setTtsError] = useState<string | null>(null);
     const [transcript, setTranscript] = useState('');
     const [isAiTalking, setIsAiTalking] = useState(false);
 
@@ -26,10 +27,10 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
 
     useEffect(() => {
         isAiTalkingRef.current = isAiTalking;
-        // Toggle dedicated-mic stream enabled state so Deepgram ignores AI audio
+        // Keep mic track enabled to support real-time interruption detection
         if (micStreamRef.current) {
             micStreamRef.current.getAudioTracks().forEach(t => {
-                t.enabled = !isAiTalking;
+                t.enabled = true;
             });
         }
     }, [isAiTalking]);
@@ -126,7 +127,7 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
                     mediaRecorderRef.current = mr;
 
                     mr.ondataavailable = (e) => {
-                        if (e.data.size > 0 && socket.readyState === WebSocket.OPEN && !isAiTalkingRef.current) {
+                        if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) {
                             socket.send(e.data);
                         }
                     };
@@ -142,11 +143,27 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
                 }
             };
 
-            socket.onmessage = (msg) => {
+             socket.onmessage = (msg) => {
                 const data = JSON.parse(msg.data);
                 const text = data.channel?.alternatives?.[0]?.transcript;
-                if (text && data.is_final) {
-                    setTranscript(prev => (prev + ' ' + text).trim());
+                if (text) {
+                    // Real-time Interruption support: if candidate speaks while AI is talking, cut off AI
+                    if (isAiTalkingRef.current) {
+                        console.log('[useVoice] Interruption detected: User started speaking');
+                        if (currentAudioRef.current) {
+                            try {
+                                currentAudioRef.current.pause();
+                                currentAudioRef.current.src = '';
+                            } catch (_) { }
+                            currentAudioRef.current = null;
+                        }
+                        speakVersionRef.current += 1;
+                        setIsAiTalking(false);
+                    }
+                    
+                    if (data.is_final) {
+                        setTranscript(prev => (prev + ' ' + text).trim());
+                    }
                 }
             };
 
@@ -191,7 +208,7 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
         setIsAiTalking(true);
 
         try {
-            const blob = await voiceApi.getTTS(text, getTokenRef.current);
+            const blob = await voiceApi.getTTS(text, voiceId, getTokenRef.current);
 
             // If a newer speak() call arrived while we were fetching TTS, bail out
             if (speakVersionRef.current !== myVersion) return;
@@ -222,11 +239,16 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
                     resolve();
                 });
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error('[useVoice] TTS error:', err);
-            if (speakVersionRef.current === myVersion) setIsAiTalking(false);
+            if (speakVersionRef.current === myVersion) {
+                setIsAiTalking(false);
+                setTtsError(err?.message || 'TTS failed');
+            }
+            // Re-throw so callers (e.g. podcast page) can display a toast
+            throw err;
         }
-    }, []);
+    }, [voiceId]);
 
     useEffect(() => {
         return () => disconnect();
@@ -238,6 +260,7 @@ export const useVoice = (roomName: string, getToken: () => Promise<string | null
         isConnected,
         isConnecting,
         error,
+        ttsError,
         transcript,
         setTranscript,
         speak,

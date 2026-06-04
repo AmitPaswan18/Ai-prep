@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Code,
 } from "lucide-react";
 import Link from "next/link";
 import { interviewSessionApi, voiceApi } from "@/lib/api";
@@ -287,17 +288,64 @@ const Results = () => {
                               </div>
                            </div>
 
-                           {/* Your answer */}
-                           {q.answer && (
-                              <div className="mt-4 p-3.5 rounded-xl bg-muted/20 border border-border/30">
-                                 <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                                    <MessageSquare className="h-3 w-3" /> Your Answer
-                                 </p>
-                                 <p className="text-xs text-muted-foreground/80 italic leading-relaxed line-clamp-2">
-                                    &ldquo;{q.answer}&rdquo;
-                                 </p>
-                              </div>
-                           )}
+                            {/* Your answer / submitted code */}
+                            {q.answer && (
+                               q.codeReview ? (
+                                 <div className="mt-4 p-4 rounded-xl bg-black/90 text-zinc-100 border border-border/30 font-mono text-xs overflow-x-auto leading-relaxed max-h-[300px] custom-scrollbar">
+                                    <div className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-1.5 border-b border-zinc-800 pb-2">
+                                       <Code className="h-3.5 w-3.5 text-primary" /> Submitted Code Solution
+                                    </div>
+                                    <pre className="whitespace-pre">{q.answer}</pre>
+                                 </div>
+                               ) : (
+                                 <div className="mt-4 p-3.5 rounded-xl bg-muted/20 border border-border/30">
+                                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                                       <MessageSquare className="h-3 w-3" /> Your Answer
+                                    </p>
+                                    <p className="text-xs text-muted-foreground/80 italic leading-relaxed line-clamp-2">
+                                       &ldquo;{q.answer}&rdquo;
+                                    </p>
+                                 </div>
+                               )
+                            )}
+
+                            {/* Code Review details */}
+                            {q.codeReview && (
+                               <div className="mt-4 grid sm:grid-cols-2 gap-4 border-t border-zinc-800 pt-4">
+                                  <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/10">
+                                     <h5 className="text-[9px] font-bold uppercase tracking-widest text-primary mb-2 flex items-center gap-1">
+                                        <Zap className="h-3 w-3" /> Runtime Complexity
+                                     </h5>
+                                     <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {q.codeReview.runtimeComplexity}
+                                     </p>
+                                  </div>
+                                  <div className="p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
+                                     <h5 className="text-[9px] font-bold uppercase tracking-widest text-indigo-500 mb-2 flex items-center gap-1">
+                                        <Activity className="h-3 w-3" /> Space Complexity
+                                     </h5>
+                                     <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {q.codeReview.spatialComplexity}
+                                     </p>
+                                  </div>
+                                  <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 sm:col-span-2">
+                                     <h5 className="text-[9px] font-bold uppercase tracking-widest text-emerald-500 mb-2 flex items-center gap-1">
+                                        <CheckCircle2 className="h-3 w-3" /> Correctness & Edge Cases
+                                     </h5>
+                                     <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {q.codeReview.correctness}
+                                     </p>
+                                  </div>
+                                  <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 sm:col-span-2">
+                                     <h5 className="text-[9px] font-bold uppercase tracking-widest text-amber-500 mb-2 flex items-center gap-1">
+                                        <Sparkles className="h-3 w-3" /> Clean Code & Style
+                                     </h5>
+                                     <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {q.codeReview.cleanCode}
+                                     </p>
+                                  </div>
+                               </div>
+                            )}
 
                            {/* Pacing and Speech indicators */}
                            {(q.wpm !== null && q.wpm !== undefined) && (

@@ -52,7 +52,7 @@ router.get("/token", requireAuth(), async (req, res) => {
 router.post("/tts", requireAuth(), async (req, res) => {
     try {
         const { userId: clerkUserId } = getAuth(req);
-        const { text } = req.body;
+        const { text, voiceId } = req.body;
 
         if (!text) {
             return res.status(400).json({ error: "Text is required" });
@@ -71,7 +71,7 @@ router.post("/tts", requireAuth(), async (req, res) => {
         }
 
         const elevenLabs = new ElevenLabsClient({ apiKey });
-        let voiceIdToUse = process.env.ELEVENLABS_VOICE_ID || "EXAVIT9j9E6On0bxicth";
+        let voiceIdToUse = voiceId || process.env.ELEVENLABS_VOICE_ID || "EXAVIT9j9E6On0bxicth";
 
         // Dynamic voice discovery to prevent 404s
         try {
@@ -79,7 +79,7 @@ router.post("/tts", requireAuth(), async (req, res) => {
             if (voices.voices && voices.voices.length > 0) {
                 const voiceExists = voices.voices.some(v => v.voice_id === voiceIdToUse);
                 if (!voiceExists) {
-                    console.log(`[TTS] Default voice not found. Falling back to: ${voices.voices[0].name} (${voices.voices[0].voice_id})`);
+                    console.log(`[TTS] Requested/Default voice not found. Falling back to: ${voices.voices[0].name} (${voices.voices[0].voice_id})`);
                     voiceIdToUse = voices.voices[0].voice_id;
                 }
             }

@@ -62,12 +62,13 @@ router.post("/start/:interviewId", requireAuth(), async (req, res) => {
             });
         }
 
-        const { questionCount, difficulty, tailorToResume } = req.body;
+        const { questionCount, difficulty, tailorToResume, voiceId } = req.body;
 
         const session = await startInterviewSession(interviewId, user.id, {
             questionCount: questionCount ? parseInt(questionCount) : undefined,
             difficulty,
             tailorToResume: tailorToResume === true || tailorToResume === "true",
+            voiceId,
         });
 
         res.json({

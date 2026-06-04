@@ -319,4 +319,55 @@ router.delete("/:id", requireAuth(), async (req, res) => {
     }
 });
 
+// POST /interview/generate-tailored - Generate an interview tailored to candidate weaknesses
+router.post("/generate-tailored", requireAuth(), async (req, res) => {
+    try {
+        const { userId: clerkUserId } = getAuth(req);
+
+        if (!clerkUserId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { clerkUserId },
+            select: { id: true, resumeAnalysis: true }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const analysis = user.resumeAnalysis as any;
+        if (!analysis || !analysis.weaknesses || analysis.weaknesses.length === 0) {
+            return res.status(400).json({ error: "Please upload your resume and complete ATS analysis first." });
+        }
+
+        const weaknesses = analysis.weaknesses;
+        const topics = weaknesses.slice(0, 4);
+
+        const newInterview = await createInterview({
+            userId: user.id,
+            title: "AI Resume Deep-Dive",
+            description: `Dynamic practice session targeting critical growth areas identified in your resume: ${topics.join(", ")}.`,
+            category: "TECHNICAL",
+            difficulty: "INTERMEDIATE",
+            duration: 15,
+            questionCount: 5,
+            topics: topics,
+            color: "text-purple-500",
+            icon: "Target",
+            isTemplate: false
+        });
+
+        res.json({
+            success: true,
+            message: "Tailored interview generated successfully",
+            data: newInterview
+        });
+    } catch (error: any) {
+        console.error("Error generating tailored interview:", error);
+        res.status(500).json({ error: error.message || "Failed to generate tailored interview" });
+    }
+});
+
 export default router;

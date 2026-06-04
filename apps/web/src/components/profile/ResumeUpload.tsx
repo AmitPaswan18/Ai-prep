@@ -25,13 +25,32 @@ import { userApi } from "@/lib/api";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { Progress } from "@/components/ui/progress";
 
 export const ResumeUpload = () => {
     const { getToken } = useAuth();
     const { toast } = useToast();
-    const [resumeData, setResumeData] = useState<{ hasResume: boolean; updatedAt: string | null; snippet: string | null } | null>(null);
+    const router = useRouter();
+    const [resumeData, setResumeData] = useState<{
+        hasResume: boolean;
+        updatedAt: string | null;
+        snippet: string | null;
+        resumeAnalysis: {
+            score: number;
+            summary: string;
+            formattingScore: number;
+            skillsScore: number;
+            experienceScore: number;
+            strengths: string[];
+            weaknesses: string[];
+            improvements: string[];
+        } | null;
+    } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'report' | 'remedy'>('report');
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         fetchStatus();
@@ -104,13 +123,33 @@ export const ResumeUpload = () => {
                 title: "Context Removed",
                 description: "Your resume data has been cleared from your profile.",
             });
-            setResumeData({ hasResume: false, updatedAt: null, snippet: null });
+            setResumeData({ hasResume: false, updatedAt: null, snippet: null, resumeAnalysis: null });
         } catch (error: any) {
             toast({
                 title: "Error",
                 description: error.message || "Failed to remove resume.",
                 variant: "destructive"
             });
+        }
+    };
+
+    const handleGenerateTailored = async () => {
+        try {
+            setIsGenerating(true);
+            const session = await interviewApi.generateTailoredSession(getToken);
+            toast({
+                title: "Mock Interview Generated",
+                description: "Redirecting you to start your resume-tailored practice session.",
+            });
+            router.push(`/interviews/room/${session.id}`);
+        } catch (error: any) {
+            toast({
+                title: "Generation Failed",
+                description: error.message || "Failed to generate tailored mock module.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -151,31 +190,125 @@ export const ResumeUpload = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="space-y-4"
+                            className="space-y-5"
                         >
-                            <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 relative">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-2.5 rounded-xl bg-background shadow-soft text-primary">
-                                        <FileText className="h-5 w-5" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Extracted Snippet</p>
-                                        <p className="text-xs italic text-muted-foreground line-clamp-2 leading-relaxed">
-                                            "{resumeData.snippet}"
-                                        </p>
-                                    </div>
+                            {resumeData.resumeAnalysis && (
+                                <div className="flex gap-2 border-b border-border/50 pb-3">
+                                    <button 
+                                        onClick={() => setActiveTab('report')}
+                                        className={`flex-1 py-1.5 rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all ${
+                                            activeTab === 'report' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-transparent text-muted-foreground hover:bg-muted/30'
+                                        }`}
+                                    >
+                                        ATS Scorecard
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('remedy')}
+                                        className={`flex-1 py-1.5 rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all ${
+                                            activeTab === 'remedy' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-transparent text-muted-foreground hover:bg-muted/30'
+                                        }`}
+                                    >
+                                        Improvements ({resumeData.resumeAnalysis.improvements.length})
+                                    </button>
                                 </div>
-                            </div>
+                            )}
+
+                            {activeTab === 'report' ? (
+                                <div className="space-y-4">
+                                    {resumeData.resumeAnalysis ? (
+                                        <div className="flex items-center gap-6 p-4 rounded-2xl bg-muted/20 border border-border/40">
+                                            {/* Circular Gauge */}
+                                            <div className="relative flex items-center justify-center shrink-0">
+                                                <svg className="w-18 h-18 transform -rotate-90">
+                                                    <circle cx="36" cy="36" r="30" className="stroke-muted/30" strokeWidth="4.5" fill="transparent" />
+                                                    <circle cx="36" cy="36" r="30" className="stroke-primary" strokeWidth="4.5" fill="transparent"
+                                                            strokeDasharray={2 * Math.PI * 30}
+                                                            strokeDashoffset={2 * Math.PI * 30 * (1 - (resumeData.resumeAnalysis.score || 0) / 100)} />
+                                                </svg>
+                                                <span className="absolute text-sm font-bold tracking-tight">{resumeData.resumeAnalysis.score || 0}%</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-bold text-white leading-snug">ATS Compatibility</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-3">{resumeData.resumeAnalysis.summary}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
+                                            <p className="text-xs italic text-muted-foreground">"{resumeData.snippet}"</p>
+                                        </div>
+                                    )}
+
+                                    {resumeData.resumeAnalysis && (
+                                        <div className="space-y-3">
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                    <span>Formatting & Structure</span>
+                                                    <span>{resumeData.resumeAnalysis.formattingScore}%</span>
+                                                </div>
+                                                <Progress value={resumeData.resumeAnalysis.formattingScore} className="h-1 bg-muted accent-primary" />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                    <span>Skills & Tech Stack Alignment</span>
+                                                    <span>{resumeData.resumeAnalysis.skillsScore}%</span>
+                                                </div>
+                                                <Progress value={resumeData.resumeAnalysis.skillsScore} className="h-1 bg-muted accent-primary" />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                    <span>Experience Detail & Impact</span>
+                                                    <span>{resumeData.resumeAnalysis.experienceScore}%</span>
+                                                </div>
+                                                <Progress value={resumeData.resumeAnalysis.experienceScore} className="h-1 bg-muted accent-primary" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-4 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+                                    {resumeData.resumeAnalysis?.improvements && resumeData.resumeAnalysis.improvements.length > 0 ? (
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-bold uppercase text-primary/80 tracking-wider">Recommended Changes</p>
+                                            {resumeData.resumeAnalysis.improvements.map((imp, idx) => (
+                                                <div key={idx} className="flex gap-2 items-start text-[11px] leading-relaxed text-muted-foreground">
+                                                    <Badge variant="outline" className="h-4 px-1 rounded bg-primary/5 text-primary border-primary/20 text-[8px] font-bold shrink-0 mt-0.5">FIX</Badge>
+                                                    <span>{imp}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground italic">No improvements suggested.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {resumeData.resumeAnalysis && (
+                                <Button 
+                                    onClick={handleGenerateTailored}
+                                    disabled={isGenerating}
+                                    className="w-full h-11 rounded-2xl font-bold uppercase text-[10px] tracking-widest bg-gradient-to-r from-primary to-accent border-none text-white shadow-glow transition-all"
+                                >
+                                    {isGenerating ? (
+                                        <span className="flex items-center gap-1.5 justify-center">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Customizing...
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5 justify-center">
+                                            <ArrowUpRight className="h-4 w-4" /> Generate AI Tailored Interview
+                                        </span>
+                                    )}
+                                </Button>
+                            )}
                             
-                            <div className="flex items-center justify-between">
-                                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                            <div className="flex items-center justify-between pt-2 border-t border-border/10">
+                                <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
                                     Updated: {resumeData.updatedAt ? new Date(resumeData.updatedAt).toLocaleDateString() : 'Unknown'}
                                 </div>
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 
                                     onClick={handleDelete}
-                                    className="h-8 rounded-lg text-destructive hover:bg-destructive/5 text-[10px] uppercase font-bold tracking-widest"
+                                    className="h-8 rounded-lg text-destructive hover:bg-destructive/5 text-[9px] uppercase font-bold tracking-widest"
                                 >
                                     <Trash2 className="h-3 w-3 mr-1.5" /> Clear Data
                                 </Button>

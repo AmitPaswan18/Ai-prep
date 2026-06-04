@@ -319,24 +319,46 @@ const Analytics = () => {
                      <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Accuracy projection</p>
                   </div>
 
-                  <Card className="rounded-[2rem] border-border/50 bg-background shadow-soft p-6 h-[250px]">
-                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={progressData}>
-                           <XAxis dataKey="month" stroke="rgba(0,0,0,0.3)" fontSize={9} axisLine={false} tickLine={false} />
-                           <Tooltip
-                              contentStyle={{ background: '#000', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
-                              itemStyle={{ color: '#C065F5' }}
-                           />
-                           <Line
-                              type="monotone"
-                              dataKey="score"
-                              stroke="#C065F5"
-                              strokeWidth={3}
-                              dot={{ r: 4, fill: "#C065F5", strokeWidth: 2, stroke: "#fff" }}
-                              activeDot={{ r: 6, strokeWidth: 0 }}
-                           />
-                        </LineChart>
-                     </ResponsiveContainer>
+                  <Card className="rounded-[2rem] border-border/50 bg-background shadow-soft p-6 h-[250px] relative overflow-hidden">
+                     {progressData.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+                           {/* Mini decorative graph lines */}
+                           <div className="flex items-end gap-1.5 opacity-10">
+                              {[30, 48, 38, 62, 55, 75].map((h, i) => (
+                                 <div key={i} className="w-3 rounded-t-sm bg-primary" style={{ height: `${h}px` }} />
+                              ))}
+                           </div>
+                           <div className="space-y-1.5">
+                              <p className="text-sm font-bold text-muted-foreground/70">No trend data yet</p>
+                              <p className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-medium leading-relaxed max-w-[180px]">
+                                 Complete more sessions to see your accuracy projection here
+                              </p>
+                           </div>
+                           <Link href="/interviews">
+                              <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-bold uppercase tracking-widest border-primary/30 text-primary hover:bg-primary/5 h-8 px-4">
+                                 Start Session →
+                              </Button>
+                           </Link>
+                        </div>
+                     ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                           <LineChart data={progressData}>
+                              <XAxis dataKey="month" stroke="rgba(0,0,0,0.3)" fontSize={9} axisLine={false} tickLine={false} />
+                              <Tooltip
+                                 contentStyle={{ background: '#000', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
+                                 itemStyle={{ color: '#C065F5' }}
+                              />
+                              <Line
+                                 type="monotone"
+                                 dataKey="score"
+                                 stroke="#C065F5"
+                                 strokeWidth={3}
+                                 dot={{ r: 4, fill: "#C065F5", strokeWidth: 2, stroke: "#fff" }}
+                                 activeDot={{ r: 6, strokeWidth: 0 }}
+                              />
+                           </LineChart>
+                        </ResponsiveContainer>
+                     )}
                   </Card>
 
                   <Card className="rounded-[2rem] gradient-primary text-white p-8 space-y-6 shadow-glow border-none relative overflow-hidden group">

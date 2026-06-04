@@ -25,7 +25,7 @@ function calculateWpm(text: string | null | undefined, timeSpentSeconds: number 
 export async function startInterviewSession(
     interviewId: string, 
     userId: string,
-    options?: { questionCount?: number; difficulty?: any; tailorToResume?: boolean }
+    options?: { questionCount?: number; difficulty?: any; tailorToResume?: boolean; voiceId?: string }
 ) {
     // Get the interview details
     const originalInterview = await prisma.interview.findUnique({
@@ -58,6 +58,7 @@ export async function startInterviewSession(
                 level: originalInterview.level,
                 isTemplate: false, // Clones are never templates
                 status: InterviewStatus.IN_PROGRESS,
+                voiceId: options?.voiceId || originalInterview.voiceId,
             }
         });
         targetInterviewId = clonedInterview.id;
@@ -65,7 +66,10 @@ export async function startInterviewSession(
         // Just update status for user's own interview
         await prisma.interview.update({
             where: { id: interviewId },
-            data: { status: InterviewStatus.IN_PROGRESS },
+            data: { 
+                status: InterviewStatus.IN_PROGRESS,
+                voiceId: options?.voiceId || originalInterview.voiceId,
+            },
         });
     }
 
@@ -90,7 +94,7 @@ export async function startInterviewSession(
     if (!interview) throw new Error("Target interview not found after cloning");
 
     // Apply custom options if provided
-    if (options && (options.questionCount || options.difficulty)) {
+    if (options && (options.questionCount || options.difficulty || options.voiceId)) {
         const difficulty = options.difficulty || interview.difficulty;
         const qCount = options.questionCount || interview.questionCount;
         
@@ -103,7 +107,8 @@ export async function startInterviewSession(
             data: {
                 questionCount: qCount,
                 difficulty: difficulty,
-                duration: qCount * minsPerQuestion
+                duration: qCount * minsPerQuestion,
+                voiceId: options.voiceId || interview.voiceId
             }
         });
 

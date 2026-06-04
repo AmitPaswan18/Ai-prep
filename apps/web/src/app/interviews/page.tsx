@@ -68,7 +68,8 @@ const Interviews = () => {
   const [startConfig, setStartConfig] = useState({
     questionCount: 10,
     difficulty: "INTERMEDIATE",
-    tailorToResume: false
+    tailorToResume: false,
+    voiceId: undefined as string | undefined
   });
   const [isElevenLabsConfigured, setIsElevenLabsConfigured] = useState<boolean | null>(null);
 
@@ -294,7 +295,8 @@ const Interviews = () => {
                             setStartConfig({
                               questionCount: interview.questionCount || 10,
                               difficulty: interview.difficulty || "INTERMEDIATE",
-                              tailorToResume: hasResume
+                              tailorToResume: hasResume,
+                              voiceId: undefined
                             });
                           }}
                           className="flex-1 h-9 rounded-xl font-bold gap-1 bg-muted/50 text-foreground hover:bg-gradient-to-r hover:from-[#6d52f0] hover:to-[#ca2ee6] hover:text-white group-hover:bg-gradient-to-r group-hover:from-[#6d52f0] group-hover:to-[#ca2ee6] group-hover:text-white transition-all text-xs border-none"
@@ -329,7 +331,8 @@ const Interviews = () => {
                               setStartConfig({
                                 questionCount: interview.questionCount || 10,
                                 difficulty: interview.difficulty || "INTERMEDIATE",
-                                tailorToResume: hasResume
+                                tailorToResume: hasResume,
+                                voiceId: "EXAVIT9j9E6On0bxicth"
                               });
                             }}
                             className="h-9 w-9 rounded-xl font-bold text-primary/70 hover:bg-primary/10 hover:text-primary shrink-0"
@@ -472,6 +475,39 @@ const Interviews = () => {
                     onChange={(e) => setStartConfig(prev => ({ ...prev, tailorToResume: e.target.checked }))}
                     className="w-8 h-4 rounded-full appearance-none bg-muted checked:bg-primary relative transition-all cursor-pointer before:content-[''] before:absolute before:w-3 before:h-3 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
                   />
+                </div>
+              )}
+
+              {/* Interviewer Persona Selection (Podcast mode only) */}
+              {startMode === 'PODCAST' && (
+                <div className="space-y-2.5">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Interviewer Persona</Label>
+                  <RadioGroup
+                    value={startConfig.voiceId || "EXAVIT9j9E6On0bxicth"}
+                    onValueChange={(val) => setStartConfig(prev => ({ ...prev, voiceId: val }))}
+                    className="grid grid-cols-1 gap-2"
+                  >
+                    {[
+                      { id: "EXAVIT9j9E6On0bxicth", name: "Sarah", role: "Cooperative HR", desc: "Warm, encouraging, behavior-focused" },
+                      { id: "ErXwobaYiN019PkySvjV", name: "Marcus", role: "Strict Tech Lead", desc: "Challenging, direct, detail-oriented" },
+                      { id: "AZnzlk1XvdvUeBnXmlld", name: "Elena", role: "Product Director", desc: "Strategic, structured, product-focused" }
+                    ].map((p) => (
+                      <div key={p.id}>
+                        <RadioGroupItem value={p.id} id={p.id} className="peer sr-only" />
+                        <Label
+                          htmlFor={p.id}
+                          className="flex items-center justify-between rounded-xl border border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 cursor-pointer transition-all"
+                        >
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-bold text-white">{p.name}</span>
+                            <span className="text-[8px] text-primary uppercase font-bold tracking-wider mt-0.5">{p.role}</span>
+                            <span className="text-[9px] text-muted-foreground mt-1 leading-snug">{p.desc}</span>
+                          </div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary opacity-0 peer-data-[state=checked]:opacity-100 transition-opacity" />
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
                 </div>
               )}
             </div>

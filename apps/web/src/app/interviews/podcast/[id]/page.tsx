@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -78,7 +78,8 @@ const PodcastInterviewPage = () => {
         setTranscript,
         speak,
         isAiTalking,
-    } = useVoice(interviewId, getToken);
+        ttsError,
+    } = useVoice(interviewId, getToken, session?.interview?.voiceId || undefined);
 
     // â”€â”€ Stage sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     useEffect(() => {
@@ -120,17 +121,69 @@ const PodcastInterviewPage = () => {
         if (session && isVoiceConnected && !greetedRef.current) {
             greetedRef.current = true;
             const greetAndSpeak = async () => {
-                await speak(
-                    "Welcome to Podcast Mode. I'll read each question aloud. Answer at your own pace, then tap Next to continue. You can also tap the Help button for a hint at any time. Let's begin."
-                );
-                if (session.questions?.[0]) {
-                    await speak(session.questions[0].question);
+                try {
+                    await speak(
+                        "Welcome to Podcast Mode. I'll read each question aloud. Answer at your own pace, then tap Next to continue. You can also tap the Help button for a hint at any time. Let's begin."
+                    );
+                    if (session.questions?.[0]) {
+                        await speak(session.questions[0].question);
+                    }
+                } catch (err: any) {
+                    const msg: string = err?.message || '';
+                    const isKeyError =
+                        msg.toLowerCase().includes('quota') ||
+                        msg.toLowerCase().includes('401') ||
+                        msg.toLowerCase().includes('invalid') ||
+                        msg.toLowerCase().includes('api key') ||
+                        msg.toLowerCase().includes('unauthorized');
+                    toast({
+                        title: isKeyError
+                            ? 'ElevenLabs API Key Issue'
+                            : 'Voice Synthesis Failed',
+                        description: isKeyError
+                            ? 'Your ElevenLabs key may be exhausted or invalid. Add a valid key in Settings to restore voice.'
+                            : (msg || 'Could not generate speech. Check your ElevenLabs API key in Settings.'),
+                        variant: 'destructive',
+                        action: (
+                            <button
+                                onClick={() => router.push('/dashboard/settings')}
+                                className="shrink-0 rounded-md border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition-colors"
+                            >
+                                Open Settings
+                            </button>
+                        ) as any,
+                    });
                 }
             };
             greetAndSpeak();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session, isVoiceConnected]);
+
+    // Watch for mid-session TTS errors (e.g. key expires mid-interview)
+    useEffect(() => {
+        if (!ttsError) return;
+        const msg = ttsError.toLowerCase();
+        const isKeyError =
+            msg.includes('quota') || msg.includes('401') ||
+            msg.includes('invalid') || msg.includes('api key') ||
+            msg.includes('unauthorized');
+        toast({
+            title: isKeyError ? 'ElevenLabs Token Exhausted' : 'Voice Error',
+            description: isKeyError
+                ? 'Your ElevenLabs API quota has been reached or the key is invalid. Go to Settings to update it.'
+                : ttsError,
+            variant: 'destructive',
+            action: (
+                <button
+                    onClick={() => router.push('/dashboard/settings')}
+                    className="shrink-0 rounded-md border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition-colors"
+                >
+                    Open Settings
+                </button>
+            ) as any,
+        });
+    }, [ttsError]);
 
     // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const saveCurrentResponse = useCallback(() => {
@@ -158,11 +211,10 @@ const PodcastInterviewPage = () => {
         try {
             setSubmitting(true);
             saveCurrentResponse();
-            // Small delay to let state flush
             await new Promise(r => setTimeout(r, 100));
             const responsesArray = Array.from(responsesRef.current.values());
             await interviewSessionApi.submitSession(interviewId, responsesArray, getToken);
-            await speak("Interview complete! Excellent work. Your performance report is now ready. Redirecting to your results.");
+            try { await speak("Interview complete! Excellent work. Your performance report is now ready. Redirecting to your results."); } catch (_) { }
             router.push(`/results/${interviewId}`);
         } catch {
             toast({ title: "Sync Failed", description: "Redirecting to results...", variant: "destructive" });
@@ -184,15 +236,12 @@ const PodcastInterviewPage = () => {
         const currentIdx = currentQuestionIndexRef.current;
 
         if (s && currentIdx < s.questions.length - 1) {
-            // Move to next question
             const nextIndex = currentIdx + 1;
             setCurrentQuestionIndex(nextIndex);
             setQuestionStartTime(Date.now());
             setIsAutoTransitioning(false);
-            // Speak next question
-            await speak(s.questions[nextIndex].question);
+            try { await speak(s.questions[nextIndex].question); } catch (_) { }
         } else {
-            // This IS the last question â€” finish the session
             setIsAutoTransitioning(false);
             await handleFinish();
         }

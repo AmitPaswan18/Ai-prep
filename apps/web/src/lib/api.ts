@@ -56,6 +56,7 @@ export interface Interview {
     level?: string;
     isTemplate?: boolean;
     status?: string;
+    voiceId?: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -178,6 +179,21 @@ export const interviewApi = {
 
         return response.json();
     },
+
+    // Generate tailored interview session based on resume weaknesses
+    async generateTailoredSession(getToken?: () => Promise<string | null>): Promise<Interview> {
+        const response = await authFetch(`${API_BASE_URL}/interview/generate-tailored`, {
+            method: 'POST',
+        }, getToken);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate tailored interview');
+        }
+
+        const result = await response.json();
+        return result.data;
+    },
 };
 
 export interface InterviewQuestion {
@@ -215,7 +231,7 @@ export interface InterviewAnalysis {
 
 export const interviewSessionApi = {
     // Start an interview session (generates questions)
-    async startSession(interviewId: string, options?: { questionCount?: number, difficulty?: string, tailorToResume?: boolean }, getToken?: () => Promise<string | null>): Promise<InterviewSession> {
+    async startSession(interviewId: string, options?: { questionCount?: number, difficulty?: string, tailorToResume?: boolean, voiceId?: string }, getToken?: () => Promise<string | null>): Promise<InterviewSession> {
         const response = await authFetch(`${API_BASE_URL}/interview-session/start/${interviewId}`, {
             method: 'POST',
             body: JSON.stringify(options || {}),
@@ -308,10 +324,10 @@ export const voiceApi = {
     },
 
     // Get TTS audio blob
-    async getTTS(text: string, getToken?: () => Promise<string | null>): Promise<Blob> {
+    async getTTS(text: string, voiceId?: string, getToken?: () => Promise<string | null>): Promise<Blob> {
         const response = await authFetch(`${API_BASE_URL}/voice/tts`, {
             method: 'POST',
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, voiceId }),
         }, getToken);
         if (!response.ok) {
             const error = await response.json();
@@ -382,6 +398,16 @@ export const userApi = {
         hasResume: boolean;
         updatedAt: string | null;
         snippet: string | null;
+        resumeAnalysis: {
+            score: number;
+            summary: string;
+            formattingScore: number;
+            skillsScore: number;
+            experienceScore: number;
+            strengths: string[];
+            weaknesses: string[];
+            improvements: string[];
+        } | null;
     }> {
         const response = await authFetch(`${API_BASE_URL}/user/resume`, {}, getToken);
         if (!response.ok) {
