@@ -6,6 +6,19 @@ import {
     type InterviewQuestion as AiInterviewQuestion,
 } from "@ai-platform/ai-core";
 
+function countFillerWords(text: string | null | undefined): number {
+    if (!text) return 0;
+    const matches = text.match(/\b(um|uh|like|actually|basically|you-know|so|well)\b/gi);
+    return matches ? matches.length : 0;
+}
+
+function calculateWpm(text: string | null | undefined, timeSpentSeconds: number | null | undefined): number {
+    if (!text || !timeSpentSeconds || timeSpentSeconds <= 0) return 0;
+    const wordCount = text.trim().split(/\s+/).length;
+    const minutes = timeSpentSeconds / 60;
+    return Math.round(wordCount / minutes);
+}
+
 /**
  * Start an interview session - generates questions and updates status
  */
@@ -53,6 +66,13 @@ export async function startInterviewSession(
         await prisma.interview.update({
             where: { id: interviewId },
             data: { status: InterviewStatus.IN_PROGRESS },
+        });
+    }
+
+    // If starting a fresh session (not resuming an in-progress one), clear any existing questions to force fresh generation
+    if (originalInterview.status !== "IN_PROGRESS" || originalInterview.isTemplate || originalInterview.userId !== userId) {
+        await prisma.interviewQuestion.deleteMany({
+            where: { interviewId: targetInterviewId },
         });
     }
 
@@ -188,12 +208,19 @@ export async function submitInterviewSession(
                 return r.questionId === dbQuestion.id || r.questionId === qs.questionId;
             });
 
+            const timeSpent = response?.timeSpent || 0;
+            const wpm = calculateWpm(response?.answer, timeSpent);
+            const fillerCount = countFillerWords(response?.answer);
+
             return prisma.interviewQuestion.update({
                 where: { id: dbQuestion.id },
                 data: {
                     score: qs.score,
                     feedback: qs.feedback,
                     answer: response?.answer,
+                    timeSpent,
+                    wpm,
+                    fillerCount
                 },
             });
         })
@@ -318,6 +345,9 @@ export async function getInterviewResults(interviewId: string) {
                     answer: true,
                     score: true,
                     feedback: true,
+                    timeSpent: true,
+                    wpm: true,
+                    fillerCount: true,
                 },
             },
             results: true,
@@ -356,6 +386,9 @@ export async function getInterviewResults(interviewId: string) {
             answer: q.answer,
             score: q.score,
             feedback: q.feedback,
+            timeSpent: q.timeSpent,
+            wpm: q.wpm,
+            fillerCount: q.fillerCount,
         })),
         skillScores: interview.skillScores.map(s => ({
             skillName: s.skillName,

@@ -299,6 +299,20 @@ const Results = () => {
                               </div>
                            )}
 
+                           {/* Pacing and Speech indicators */}
+                           {(q.wpm !== null && q.wpm !== undefined) && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                 <Badge variant="secondary" className="rounded-lg text-[10px] py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    <Clock className="mr-1 h-3 w-3 inline" /> {q.wpm} WPM Pacing
+                                 </Badge>
+                                 <Badge variant="secondary" className={`rounded-lg text-[10px] py-1 border ${
+                                    q.fillerCount > 3 ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
+                                 }`}>
+                                    <MessageSquare className="mr-1 h-3 w-3 inline" /> {q.fillerCount} Filler Words
+                                 </Badge>
+                              </div>
+                           )}
+
                            {/* Per-question AI Help */}
                            <QuestionHelpPanel
                               question={q.question}

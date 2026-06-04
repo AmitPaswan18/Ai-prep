@@ -436,5 +436,29 @@ export const userApi = {
     }
 };
 
+export interface AnalyticsData {
+    sessionsDone: number;
+    totalPractice: number;
+    averageScore: number;
+    topScore: number;
+    comparativeRank: string;
+    averageWpm: number;
+    averageFillerCount: number;
+    categoryData: Array<{ name: string; score: number }>;
+    skillRadarData: Array<{ skill: string; score: number; fullMark: number }>;
+    progressData: Array<{ month: string; score: number }>;
+}
+
+export const analyticsApi = {
+    async getAnalyticsData(getToken?: () => Promise<string | null>): Promise<AnalyticsData> {
+        const response = await authFetch(`${API_BASE_URL}/analytics`, {}, getToken);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch analytics data');
+        }
+        return response.json();
+    }
+};
+
 
 

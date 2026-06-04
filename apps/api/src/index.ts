@@ -9,6 +9,7 @@ import interviewRoutes from "./routes/interview.routes.js";
 import interviewSessionRoutes from "./routes/interview-session.routes.js";
 import voiceRoutes from "./routes/voice.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 import { getOrCreateUser } from "./services/user.service.js";
 
 
@@ -82,6 +83,7 @@ app.use("/interview", interviewRoutes);
 app.use("/interview-session", interviewSessionRoutes);
 app.use("/voice", voiceRoutes);
 app.use("/user", userRoutes);
+app.use("/analytics", analyticsRoutes);
 
 // Global error handler to preserve CORS headers and return clean JSON
 app.use((err: any, req: any, res: any, next: any) => {

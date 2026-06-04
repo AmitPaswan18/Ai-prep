@@ -55,6 +55,9 @@ model InterviewQuestion {
   answer       String?
   score        Int?
   feedback     String?
+  timeSpent    Int?
+  wpm          Float?
+  fillerCount  Int?
 
   interview    Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
 }
